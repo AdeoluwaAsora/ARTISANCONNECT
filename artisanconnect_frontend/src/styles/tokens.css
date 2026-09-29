@@ -1,0 +1,132 @@
+/**
+ * ArtisanConnect Design Tokens
+ * Single source of truth for color, type, spacing, radius, shadow and motion.
+ * Every component should consume these variables rather than hard-coded values.
+ */
+
+:root {
+    /* ---------------------------------- */
+    /* Color                               */
+    /* ---------------------------------- */
+    /* Brand */
+    --color-primary-900: #0b2038;
+    --color-primary-700: #123252;
+    --color-primary-600: #16345c;
+    --color-primary-500: #1d4a7d;
+    --color-primary-100: #e4ecf5;
+    --color-primary-50: #f2f6fb;
+    --color-secondary-600: #d97b32;
+    --color-secondary-500: #f2994a;
+    --color-secondary-400: #f7ac6a;
+    --color-secondary-100: #fdead6;
+    --color-accent-700: #0b7d4f;
+    --color-accent-600: #0fa968;
+    --color-accent-500: #17c17c;
+    --color-accent-100: #dcf5e9;
+    /* Neutrals */
+    --color-bg: #fbfbfa;
+    --color-surface: #f2f4f7;
+    --color-surface-raised: #ffffff;
+    --color-border: #e3e7ed;
+    --color-border-strong: #cbd2dd;
+    --color-ink: #1b2430;
+    --color-ink-soft: #45505e;
+    --color-slate: #64748b;
+    --color-slate-light: #94a1b2;
+    /* Semantic */
+    --color-success: #1a9d5c;
+    --color-success-bg: #e4f7ed;
+    --color-warning: #b5790a;
+    --color-warning-bg: #fdf2dc;
+    --color-danger: #c8382c;
+    --color-danger-bg: #fbe9e7;
+    --color-info: #1d6fa5;
+    --color-info-bg: #e7f2fa;
+    /* Overlay */
+    --color-overlay: rgba(11, 32, 56, 0.55);
+    --color-focus-ring: #1d4a7d;
+    /* ---------------------------------- */
+    /* Typography                          */
+    /* ---------------------------------- */
+
+    --font-display: "Poppins", "Segoe UI", sans-serif;
+    --font-body: "Inter", "Segoe UI", sans-serif;
+    --font-data: "Inter", "Segoe UI", sans-serif; /* tabular-nums applied via .num */
+
+    --fs-xs: 0.75rem; /* 12px */
+    --fs-sm: 0.875rem; /* 14px */
+    --fs-base: 1rem; /* 16px */
+    --fs-md: 1.125rem; /* 18px */
+    --fs-lg: 1.375rem; /* 22px */
+    --fs-xl: 1.75rem; /* 28px */
+    --fs-2xl: 2.25rem; /* 36px */
+    --fs-3xl: 2.875rem; /* 46px */
+    --fs-4xl: 3.5rem; /* 56px */
+
+    --lh-tight: 1.15;
+    --lh-snug: 1.35;
+    --lh-normal: 1.55;
+    --fw-regular: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+    --fw-bold: 700;
+    --fw-extrabold: 800;
+    --ls-tight: -0.02em;
+    --ls-normal: 0;
+    --ls-wide: 0.08em;
+    /* ---------------------------------- */
+    /* Spacing (8pt system)                */
+    /* ---------------------------------- */
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 16px;
+    --space-4: 24px;
+    --space-5: 32px;
+    --space-6: 48px;
+    --space-7: 64px;
+    --space-8: 96px;
+    --space-9: 128px;
+    /* ---------------------------------- */
+    /* Radius                              */
+    /* ---------------------------------- */
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --radius-full: 999px;
+    /* ---------------------------------- */
+    /* Shadow                              */
+    /* ---------------------------------- */
+
+--shadow-xs: 0 1px 1px rgba(11, 32, 56, 0.015);
+--shadow-sm: 0 1px 2px rgba(11, 32, 56, 0.02);
+--shadow-md: 0 2px 6px rgba(11, 32, 56, 0.03);
+--shadow-lg: 0 4px 12px rgba(11, 32, 56, 0.04);
+--shadow-focus: 0 0 0 3px rgba(29, 74, 125, 0.15);
+    /* ---------------------------------- */
+    /* Motion                              */
+    /* ---------------------------------- */
+
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 120ms;
+    --duration-base: 220ms;
+    --duration-slow: 420ms;
+    /* ---------------------------------- */
+    /* Layout                              */
+    /* ---------------------------------- */
+
+    --container-max: 1240px;
+    --container-padding: var(--space-4);
+    --header-height: 76px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

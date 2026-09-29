@@ -1,0 +1,144 @@
+.frame {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--color-primary-50) 0%,
+    var(--color-bg) 72%
+  );
+}
+
+.rings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ringOuter,
+.ringMid,
+.ringInner {
+  fill: none;
+  stroke: var(--color-primary-100);
+  stroke-width: 1.5;
+}
+
+.ringMid {
+  stroke: var(--color-primary-100);
+  animation: sweep 3.4s var(--ease-standard) infinite;
+}
+
+.ringInner {
+  stroke: var(--color-accent-100);
+}
+
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.centerDot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary-600);
+  box-shadow: 0 0 0 6px var(--color-primary-100);
+}
+
+.centerLabel {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-primary-600);
+  background: var(--color-surface-raised);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xs);
+}
+
+.blip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+}
+
+.blipDot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent-500);
+  box-shadow: 0 0 0 0 rgba(15, 169, 104, 0.5);
+  animation: blipPulse 2.4s var(--ease-out) infinite;
+}
+
+.chip {
+  position: absolute;
+  left: 18px;
+  top: -10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+
+.chipName {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-ink);
+}
+
+.chipRating {
+  font-size: var(--fs-xs);
+  color: var(--color-secondary-600);
+}
+
+@keyframes sweep {
+  0%,
+  100% {
+    stroke: var(--color-primary-100);
+  }
+  50% {
+    stroke: var(--color-accent-100);
+  }
+}
+
+@keyframes blipPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 169, 104, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(15, 169, 104, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 169, 104, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringMid,
+  .blipDot {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .chip {
+    display: none;
+  }
+}

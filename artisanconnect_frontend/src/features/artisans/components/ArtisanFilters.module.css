@@ -1,0 +1,31 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-4));
+}
+
+.heading {
+  color: var(--color-ink);
+}
+
+.checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.reset {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--color-primary-600);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  padding: 0;
+}
+
+.reset:hover {
+  text-decoration: underline;
+}

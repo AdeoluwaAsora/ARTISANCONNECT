@@ -1,0 +1,9 @@
+export { Hero } from "./Hero";
+export { Categories } from "./Categories";
+export { PopularServices } from "./PopularServices";
+export { HowItWorks } from "./HowItWorks";
+export { FeaturedArtisans } from "./FeaturedArtisans";
+export { Testimonials } from "./Testimonials";
+export { Stats } from "./Stats";
+export { CTA } from "./CTA";
+export { DownloadApp } from "./DownloadApp";

@@ -1,0 +1,105 @@
+.section {
+  padding-block: var(--space-8);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 48ch;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-ink);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+}
+
+.badgeSmall {
+  display: block;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.badgeBig {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+
+.phoneMock {
+  justify-self: center;
+  width: 220px;
+  height: 320px;
+  border-radius: 28px;
+  background: var(--color-surface-raised);
+  border: 6px solid var(--color-ink);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3);
+  position: relative;
+}
+
+.phoneNotch {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-ink);
+}
+
+.phoneCard {
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+}
+
+.phoneRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.phoneBar {
+  height: 8px;
+  width: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+}
+
+.phoneBarShort {
+  height: 8px;
+  width: 65%;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+}
+
+@media (min-width: 860px) {
+  .inner {
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+}

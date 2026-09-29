@@ -1,0 +1,35 @@
+.section {
+  padding-block: var(--space-6);
+  background: var(--color-primary-600);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.value {
+  font-size: var(--fs-2xl);
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+}
+
+.label {
+  font-size: var(--fs-sm);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@media (min-width: 720px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

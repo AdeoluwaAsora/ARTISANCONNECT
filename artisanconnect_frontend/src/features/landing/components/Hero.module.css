@@ -1,0 +1,131 @@
+.hero {
+  padding-block: var(--space-7) var(--space-8);
+  overflow: hidden;
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-7);
+  align-items: center;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.headline {
+  color: var(--color-ink);
+  max-width: 15ch;
+}
+
+.subhead {
+  max-width: 46ch;
+  margin-top: var(--space-2);
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-2);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  flex-wrap: wrap;
+}
+
+.searchIcon {
+  color: var(--color-slate);
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+}
+
+.searchInput {
+  flex: 2 1 220px;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: var(--space-2);
+  font-size: var(--fs-sm);
+}
+
+.searchInput:focus-visible,
+.searchInputSmall:focus-visible {
+  outline: none;
+}
+
+.searchInputSmall {
+  flex: 1 1 120px;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: var(--space-2);
+  font-size: var(--fs-sm);
+}
+
+.searchDivider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-border);
+}
+
+.searchSubmit {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.trustStat {
+  display: flex;
+  flex-direction: column;
+}
+
+.trustValue {
+  font-size: var(--fs-lg);
+  color: var(--color-primary-600);
+}
+
+.trustLabel {
+  font-size: var(--fs-xs);
+  color: var(--color-slate);
+}
+
+.visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.visualCaption {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xs);
+}
+
+@media (min-width: 960px) {
+  .grid {
+    grid-template-columns: 1.05fr 0.95fr;
+  }
+
+  .headline {
+    max-width: 12ch;
+  }
+}

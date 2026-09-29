@@ -1,0 +1,83 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: artisanconnect-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-artisanconnect}
+      POSTGRES_USER: ${POSTGRES_USER:-artisanconnect_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?artisanconnect1234}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-artisanconnect_user} -d ${POSTGRES_DB:-artisanconnect}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - artisanconnect-network
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: artisanconnect-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?artisanredPass123!}"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - artisanconnect-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: artisanconnect-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-artisanconnect};Username=${POSTGRES_USER:-artisanconnect_user};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
+      Jwt__Secret: ${JWT_SECRET:?JWT_SECRET must be set in .env and must be at least 32 characters}
+      Jwt__Issuer: ${JWT_ISSUER:-ArtisanConnect.API}
+      Jwt__Audience: ${JWT_AUDIENCE:-ArtisanConnect.Clients}
+      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_1:-http://localhost:3000}
+    networks:
+      - artisanconnect-network
+
+  frontend:
+    build:
+      context: ./artisanconnect_frontend
+      dockerfile: Dockerfile
+    container_name: artisanconnect-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+    networks:
+      - artisanconnect-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  artisanconnect-network:
+    driver: bridge

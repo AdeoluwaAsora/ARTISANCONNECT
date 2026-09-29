@@ -1,0 +1,105 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.brandPanel {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: var(--space-6);
+    background: linear-gradient( 160deg, var(--color-primary-900) 0%, var(--color-primary-700) 100% );
+    color: #ffffff;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+}
+
+.brandMark {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-md);
+  color: #ffffff;
+}
+
+.brandAccent {
+  color: var(--color-secondary-400);
+}
+
+.brandCopy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 34ch;
+}
+
+.brandHeadline {
+  color: #ffffff;
+}
+
+.brandSubtext {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.brandStat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-full);
+}
+
+.brandStat .body-sm {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.formPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5) var(--container-padding);
+  background: var(--color-bg);
+}
+
+.formInner {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.title {
+  margin-top: var(--space-1);
+}
+
+.subtitle {
+  margin-bottom: var(--space-4);
+}
+
+@media (min-width: 960px) {
+  .page {
+    grid-template-columns: 0.85fr 1.15fr;
+  }
+
+  .brandPanel {
+    display: flex;
+  }
+}

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ArtisanConnect.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- NetTopologySuite gives us the Point/Geometry types PostGIS needs.
+         Core stays otherwise dependency-free: no EF Core, no ASP.NET Core,
+         no third-party frameworks. This is the Domain layer - it should be
+         understandable and testable without spinning up a database or a
+         web host. -->
+    <PackageReference Include="NetTopologySuite" Version="2.5.0" />
+  </ItemGroup>
+
+</Project>

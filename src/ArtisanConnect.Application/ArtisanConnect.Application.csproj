@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ArtisanConnect.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MediatR gives us the Commands/Queries (CQRS) split the spec asks
+         for: every feature gets a Command or Query + Handler pair instead
+         of fat services with ten methods. It also gives us a pipeline
+         (see Common/Behaviors) to run validation, logging, and
+         transactions around every request uniformly. -->
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.10.0" />
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <!-- We depend on EF Core here for IQueryable extension methods only
+         (CountAsync/ToListAsync in PaginatedList, and the DbContext
+         interface below). This is the one exception Clean Architecture
+         purists debate: Application depends on the EF Core ABSTRACTION,
+         never on Npgsql or any specific provider - those stay in
+         Infrastructure. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArtisanConnect.Core\ArtisanConnect.Core.csproj" />
+  </ItemGroup>
+
+</Project>

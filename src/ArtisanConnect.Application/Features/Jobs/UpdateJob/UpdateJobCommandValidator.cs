@@ -1,0 +1,18 @@
+using FluentValidation;
+
+namespace ArtisanConnect.Application.Features.Jobs.UpdateJob;
+
+public class UpdateJobCommandValidator : AbstractValidator<UpdateJobCommand>
+{
+    public UpdateJobCommandValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Description).NotEmpty().MaximumLength(2000);
+        RuleFor(x => x.RequiredTrade).IsInEnum();
+        RuleFor(x => x.Urgency).IsInEnum();
+        RuleFor(x => x.Budget).GreaterThan(0);
+        RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
+        RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
+        RuleFor(x => x.Address).MaximumLength(500);
+    }
+}

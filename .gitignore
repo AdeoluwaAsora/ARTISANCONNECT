@@ -1,0 +1,24 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Environment / secrets - never commit real credentials
+.env
+*.env.local
+
+# Test / coverage output
+TestResults/
+coverage/
+*.trx
+
+# EF Core
+**/Migrations/*.Designer.cs.bak
+
+
+.DS_Store
+Thumbs.db
+
+
