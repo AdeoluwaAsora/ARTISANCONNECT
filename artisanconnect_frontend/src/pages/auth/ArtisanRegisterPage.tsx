@@ -12,19 +12,21 @@ import {
 } from "@/features/auth/schemas";
 import { authApi } from "@/api/authApi";
 import { setSession } from "@/store/authSession";
-import { UserRoleValue } from "@/types/api";
+import { TradeValue, UserRoleValue } from "@/types/api";
 import styles from "./ArtisanRegisterPage.module.css";
 
+// Option values are the backend Trade enum numbers (as strings, since <select>
+// values are strings); converted back to a number when building the payload.
 const tradeOptions = [
-    { value: "electrician", label: "Electrician" },
-    { value: "plumber", label: "Plumber" },
-    { value: "carpenter", label: "Carpenter" },
-    { value: "mechanic", label: "Mechanic" },
-    { value: "painter", label: "Painter" },
-    { value: "tailor", label: "Tailor" },
-    { value: "ac_technician", label: "AC Technician" },
-    { value: "solar_installer", label: "Solar Installer" },
-    { value: "housing_agent", label: "Housing Agent" },
+    { value: String(TradeValue.Electrician), label: "Electrician" },
+    { value: String(TradeValue.Plumber), label: "Plumber" },
+    { value: String(TradeValue.Carpenter), label: "Carpenter" },
+    { value: String(TradeValue.Mechanic), label: "Mechanic" },
+    { value: String(TradeValue.Painter), label: "Painter" },
+    { value: String(TradeValue.Tailor), label: "Tailor" },
+    { value: String(TradeValue.AcTechnician), label: "AC Technician" },
+    { value: String(TradeValue.SolarInstaller), label: "Solar Installer" },
+    { value: String(TradeValue.HousingAgent), label: "Housing Agent" },
 ];
 
 export function ArtisanRegisterPage() {
@@ -56,10 +58,8 @@ export function ArtisanRegisterPage() {
     const onSubmit = async (values: ArtisanRegisterFormValues) => {
         setServerError(null);
         try {
-            // NOTE: backend's Phase 1 MVP RegisterRequest only accepts
-            // { email, password, firstName, lastName, phoneNumber, role } — trade
-            // and yearsExperience aren't sent yet; wire them into a "complete
-            // artisan profile" call once that endpoint exists.
+            // The form field is named yearsExperience internally; the backend
+            // expects yearsOfExperience, and trade as its enum number.
             const response = await authApi.register({
                 firstName: values.firstName,
                 lastName: values.lastName,
@@ -68,6 +68,8 @@ export function ArtisanRegisterPage() {
                 password: values.password,
                 confirmPassword: values.confirmPassword,
                 role: UserRoleValue.Artisan,
+                trade: Number(values.trade) as TradeValue,
+                yearsOfExperience: values.yearsExperience,
             });
 
             if (!response.success) {
