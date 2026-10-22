@@ -1,4 +1,4 @@
-import type { UserRoleValue } from "./api";
+import type { TradeValue, UserRoleValue } from "./api";
 
 /** Role as returned by the backend inside AuthResult (a string, e.g. "Customer"). */
 export type UserRoleName = "Customer" | "Artisan" | "Admin";
@@ -37,6 +37,10 @@ export interface RegisterPayload {
     lastName: string;
     phoneNumber?: string;
     role: UserRoleValue;
+    /** Artisan accounts only; must be omitted for customers. */
+    trade?: TradeValue;
+    /** Artisan accounts only; must be omitted for customers. */
+    yearsOfExperience?: number;
 }
 
 export interface RefreshTokenPayload {
