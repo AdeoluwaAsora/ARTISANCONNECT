@@ -41,3 +41,8 @@ export function rethrowApiError(err: unknown): never {
   }
   throw err;
 }
+
+/** ASP.NET can serialise DateTimes without a zone marker; they are UTC. */
+export function asUtc(timestamp: string): string {
+  return /([zZ]|[+-]\d{2}:\d{2})$/.test(timestamp) ? timestamp : `${timestamp}Z`;
+}

@@ -25,23 +25,7 @@ public class GetMyJobsQueryHandler : IRequestHandler<GetMyJobsQuery, PaginatedLi
         var query = _context.Jobs
             .Where(j => j.CustomerId == _currentUser.UserId)
             .OrderByDescending(j => j.CreatedAtUtc)
-            .Select(j => new JobResult
-            {
-                JobId = j.Id,
-                CustomerId = j.CustomerId,
-                Title = j.Title,
-                Description = j.Description,
-                RequiredTrade = j.RequiredTrade.ToString(),
-                BudgetMin = j.BudgetMin,
-                BudgetMax = j.BudgetMax,
-                Urgency = j.Urgency.ToString(),
-                Status = j.Status.ToString(),
-                Latitude = j.Location.Y,
-                Longitude = j.Location.X,
-                Address = j.Address,
-                AssignedArtisanId = j.AssignedArtisanId,
-                CreatedAtUtc = j.CreatedAtUtc
-            });
+            .Select(JobProjections.ToResult);
 
         return await PaginatedList<JobResult>.CreateAsync(query, request.PageNumber, request.PageSize, cancellationToken);
     }

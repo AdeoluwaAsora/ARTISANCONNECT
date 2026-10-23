@@ -4,7 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, Textarea } from "@/components/forms";
 import { Button, Card } from "@/components/ui";
-import { bidsApi } from "@/services/mockBids";
+import { bidsApi } from "@/api/bidsApi";
 import styles from "./SubmitBidForm.module.css";
 
 const submitBidSchema = z.object({
@@ -19,12 +19,12 @@ type SubmitBidFormValues = z.infer<typeof submitBidSchema>;
 
 interface SubmitBidFormProps {
   jobId: string;
-  artisanId: string;
   onSubmitted: () => void;
 }
 
-export function SubmitBidForm({ jobId, artisanId, onSubmitted }: SubmitBidFormProps) {
+export function SubmitBidForm({ jobId, onSubmitted }: SubmitBidFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -36,9 +36,12 @@ export function SubmitBidForm({ jobId, artisanId, onSubmitted }: SubmitBidFormPr
 
   const onSubmit = async (values: SubmitBidFormValues) => {
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      await bidsApi.submit({ jobId, artisanId, ...values });
+      await bidsApi.submit(jobId, values);
       onSubmitted();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Couldn't submit your bid. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -69,6 +72,11 @@ export function SubmitBidForm({ jobId, artisanId, onSubmitted }: SubmitBidFormPr
           error={errors.message?.message}
           {...register("message")}
         />
+        {submitError && (
+          <p className={styles.submitError} role="alert">
+            {submitError}
+          </p>
+        )}
         <Button type="submit" isLoading={isSubmitting} fullWidth>
           Submit bid
         </Button>

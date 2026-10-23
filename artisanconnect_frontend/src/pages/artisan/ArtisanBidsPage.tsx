@@ -2,17 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Card, Badge, Button } from "@/components/ui";
-import { bidsApi } from "@/services/mockBids";
+import { bidsApi } from "@/api/bidsApi";
+import { bidStatusTone } from "@/features/bids/status";
 import styles from "./ArtisanBidsPage.module.css";
-
-const MOCK_SELF_ARTISAN_ID = "artisan-1";
 
 export function ArtisanBidsPage() {
   usePageTitle("My bids");
 
   const { data: bids, isLoading } = useQuery({
     queryKey: ["bids", "mine"],
-    queryFn: () => bidsApi.getByArtisan(MOCK_SELF_ARTISAN_ID),
+    queryFn: () => bidsApi.getMine(),
   });
 
   return (
@@ -24,20 +23,14 @@ export function ArtisanBidsPage() {
           {bids.map((bid) => (
             <Card key={bid.id} className={styles.row}>
               <div className={styles.info}>
-                <span className="heading-sm">Job #{bid.jobId.replace("job-", "")}</span>
+                <span className="heading-sm">{bid.jobTitle}</span>
                 <span className="body-sm">
                   Submitted {new Date(bid.submittedAt).toLocaleDateString()}
                 </span>
               </div>
               <span className={`num ${styles.amount}`}>₦{bid.amount.toLocaleString()}</span>
               <Badge
-                tone={
-                  bid.status === "accepted"
-                    ? "success"
-                    : bid.status === "rejected"
-                      ? "danger"
-                      : "warning"
-                }
+                tone={bidStatusTone[bid.status]}
               >
                 {bid.status}
               </Badge>

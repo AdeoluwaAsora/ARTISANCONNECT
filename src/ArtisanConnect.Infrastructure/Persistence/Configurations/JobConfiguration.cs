@@ -42,6 +42,11 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
             .HasForeignKey(j => j.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(j => j.AssignedArtisan)
+            .WithMany()
+            .HasForeignKey(j => j.AssignedArtisanId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(j => j.CustomerId);
         builder.HasIndex(j => j.RequiredTrade);
         builder.HasIndex(j => j.Status);

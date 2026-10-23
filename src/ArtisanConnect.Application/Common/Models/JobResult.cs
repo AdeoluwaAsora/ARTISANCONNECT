@@ -15,5 +15,10 @@ public class JobResult
     public required double Longitude { get; init; }
     public string? Address { get; init; }
     public Guid? AssignedArtisanId { get; init; }
+    public string? AssignedArtisanName { get; init; }
+
+    /// <summary>Bids that are still live (excludes withdrawn ones).</summary>
+    public required int BidCount { get; init; }
+
     public required DateTime CreatedAtUtc { get; init; }
 }

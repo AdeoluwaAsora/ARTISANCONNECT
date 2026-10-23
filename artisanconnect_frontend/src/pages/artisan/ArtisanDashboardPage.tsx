@@ -8,12 +8,9 @@ import { StatCard } from "@/components/common/StatCard";
 import { JobCard } from "@/components/common/JobCard";
 import { Badge, Button, Card, Switch } from "@/components/ui";
 import { jobsApi } from "@/api/jobsApi";
-import { bidsApi } from "@/services/mockBids";
+import { bidsApi } from "@/api/bidsApi";
+import { bidStatusTone } from "@/features/bids/status";
 import styles from "./ArtisanDashboardPage.module.css";
-
-// Using artisan-1 as the mock "self" record until the backend exposes a
-// real artisan profile tied to the logged-in user.
-const MOCK_SELF_ARTISAN_ID = "artisan-1";
 
 export function ArtisanDashboardPage() {
   usePageTitle("Dashboard");
@@ -27,7 +24,7 @@ export function ArtisanDashboardPage() {
 
   const { data: myBids, isLoading: bidsLoading } = useQuery({
     queryKey: ["bids", "mine"],
-    queryFn: () => bidsApi.getByArtisan(MOCK_SELF_ARTISAN_ID),
+    queryFn: () => bidsApi.getMine(),
   });
 
   const pendingBids = myBids?.filter((b) => b.status === "pending").length ?? 0;
@@ -96,16 +93,10 @@ export function ArtisanDashboardPage() {
           <div className={styles.bidsList}>
             {myBids.map((bid) => (
               <Card key={bid.id} className={styles.bidRow}>
-                <span className="body-sm">Job #{bid.jobId.replace("job-", "")}</span>
+                <span className="body-sm">{bid.jobTitle}</span>
                 <span className={`num ${styles.bidAmount}`}>₦{bid.amount.toLocaleString()}</span>
                 <Badge
-                  tone={
-                    bid.status === "accepted"
-                      ? "success"
-                      : bid.status === "rejected"
-                        ? "danger"
-                        : "warning"
-                  }
+                  tone={bidStatusTone[bid.status]}
                 >
                   {bid.status}
                 </Badge>

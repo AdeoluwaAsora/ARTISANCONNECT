@@ -19,4 +19,7 @@ public class Job : BaseEntity
     public string? Address { get; set; }
     public JobStatus Status { get; set; } = JobStatus.Open;
     public Guid? AssignedArtisanId { get; set; }
+    public User? AssignedArtisan { get; set; }
+
+    public ICollection<Bid> Bids { get; set; } = new List<Bid>();
 }

@@ -1,6 +1,6 @@
 import { isAxiosError } from "axios";
 import { apiClient } from "./client";
-import { ApiError, rethrowApiError, unwrap } from "./unwrap";
+import { ApiError, asUtc, rethrowApiError, unwrap } from "./unwrap";
 import {
   TradeValue,
   isTradeName,
@@ -11,8 +11,8 @@ import {
 import type { CreateJobInput, Job, JobResult, JobStatus } from "@/types/job";
 
 /**
- * Real Jobs API. Same function names and return types as the old
- * services/mockJobs.ts, so pages only needed their import path changed.
+ * Real Jobs API. Same function names and return types as the
+ * old mock service, so pages only needed their import path changed.
  */
 
 // The backend caps page size at 50. Lists here fetch the first page only;
@@ -29,11 +29,6 @@ const STATUS_FROM_API: Record<JobResult["status"], JobStatus> = {
 
 const URGENCY_NORMAL = 1;
 
-/** ASP.NET can serialise DateTimes without a zone marker; they are UTC. */
-function asUtc(timestamp: string): string {
-  return /([zZ]|[+-]\d{2}:\d{2})$/.test(timestamp) ? timestamp : `${timestamp}Z`;
-}
-
 function toJob(result: JobResult): Job {
   return {
     id: result.jobId,
@@ -47,9 +42,8 @@ function toJob(result: JobResult): Job {
     photos: [],
     postedAt: asUtc(result.createdAtUtc),
     assignedArtisanId: result.assignedArtisanId ?? undefined,
-    // Not provided by the backend yet; filled in once Bidding exists.
-    assignedArtisanName: undefined,
-    bidCount: 0,
+    assignedArtisanName: result.assignedArtisanName ?? undefined,
+    bidCount: result.bidCount,
   };
 }
 

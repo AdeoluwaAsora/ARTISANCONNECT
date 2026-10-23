@@ -3,6 +3,7 @@ using ArtisanConnect.Application.Common.Models;
 using ArtisanConnect.Core.Entities;
 using ArtisanConnect.Core.Enums;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 
 namespace ArtisanConnect.Application.Features.Jobs.CreateJob;
@@ -44,22 +45,10 @@ public class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, JobResu
         _context.Jobs.Add(job);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new JobResult
-        {
-            JobId = job.Id,
-            CustomerId = job.CustomerId,
-            Title = job.Title,
-            Description = job.Description,
-            RequiredTrade = job.RequiredTrade.ToString(),
-            BudgetMin = job.BudgetMin,
-            BudgetMax = job.BudgetMax,
-            Urgency = job.Urgency.ToString(),
-            Status = job.Status.ToString(),
-            Latitude = job.Location.Y,
-            Longitude = job.Location.X,
-            Address = job.Address,
-            AssignedArtisanId = job.AssignedArtisanId,
-            CreatedAtUtc = job.CreatedAtUtc
-        };
+        // Re-read through the shared projection so the result includes bid count etc.
+        return await _context.Jobs
+            .Where(j => j.Id == job.Id)
+            .Select(JobProjections.ToResult)
+            .FirstAsync(cancellationToken);
     }
 }
