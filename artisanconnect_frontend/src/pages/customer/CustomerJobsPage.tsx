@@ -5,7 +5,7 @@ import { FiPlusCircle } from "react-icons/fi";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Tabs, Button } from "@/components/ui";
 import { JobCard } from "@/components/common/JobCard";
-import { jobsApi } from "@/services/mockJobs";
+import { jobsApi } from "@/api/jobsApi";
 import type { JobStatus } from "@/types/job";
 import styles from "./CustomerJobsPage.module.css";
 

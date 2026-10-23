@@ -47,7 +47,8 @@ public class UpdateJobCommandHandler : IRequestHandler<UpdateJobCommand, JobResu
         job.Title = request.Title.Trim();
         job.Description = request.Description.Trim();
         job.RequiredTrade = request.RequiredTrade;
-        job.Budget = request.Budget;
+        job.BudgetMin = request.BudgetMin;
+        job.BudgetMax = request.BudgetMax;
         job.Urgency = request.Urgency;
         job.Location = new Point(request.Longitude, request.Latitude) { SRID = 4326 };
         job.Address = request.Address;
@@ -61,7 +62,8 @@ public class UpdateJobCommandHandler : IRequestHandler<UpdateJobCommand, JobResu
             Title = job.Title,
             Description = job.Description,
             RequiredTrade = job.RequiredTrade.ToString(),
-            Budget = job.Budget,
+            BudgetMin = job.BudgetMin,
+            BudgetMax = job.BudgetMax,
             Urgency = job.Urgency.ToString(),
             Status = job.Status.ToString(),
             Latitude = job.Location.Y,

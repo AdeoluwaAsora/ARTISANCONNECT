@@ -3,7 +3,9 @@ using ArtisanConnect.Application.Features.Jobs.CancelJob;
 using ArtisanConnect.Application.Features.Jobs.CreateJob;
 using ArtisanConnect.Application.Features.Jobs.GetJobById;
 using ArtisanConnect.Application.Features.Jobs.GetMyJobs;
+using ArtisanConnect.Application.Features.Jobs.GetOpenJobs;
 using ArtisanConnect.Application.Features.Jobs.UpdateJob;
+using ArtisanConnect.Core.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,7 +35,8 @@ public class JobsController : ControllerBase
             Title = request.Title,
             Description = request.Description,
             RequiredTrade = request.RequiredTrade,
-            Budget = request.Budget,
+            BudgetMin = request.BudgetMin,
+            BudgetMax = request.BudgetMax,
             Urgency = request.Urgency,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
@@ -70,6 +73,21 @@ public class JobsController : ControllerBase
         return Ok(ApiResponse<PaginatedList<JobResult>>.SuccessResponse(result));
     }
 
+    [HttpGet("open")]
+    [Authorize(Policy = "RequireArtisanRole")]
+    [ProducesResponseType(typeof(ApiResponse<PaginatedList<JobResult>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOpenJobs(
+        [FromQuery] Trade? trade,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetOpenJobsQuery { Trade = trade, PageNumber = pageNumber, PageSize = pageSize }, cancellationToken);
+
+        return Ok(ApiResponse<PaginatedList<JobResult>>.SuccessResponse(result));
+    }
+
     [HttpPut("{id:guid}")]
     [Authorize(Policy = "RequireCustomerRole")]
     [ProducesResponseType(typeof(ApiResponse<JobResult>), StatusCodes.Status200OK)]
@@ -85,7 +103,8 @@ public class JobsController : ControllerBase
             Title = request.Title,
             Description = request.Description,
             RequiredTrade = request.RequiredTrade,
-            Budget = request.Budget,
+            BudgetMin = request.BudgetMin,
+            BudgetMax = request.BudgetMax,
             Urgency = request.Urgency,
             Latitude = request.Latitude,
             Longitude = request.Longitude,

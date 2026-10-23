@@ -7,7 +7,7 @@ import { useAuth } from "@/store/AuthContext";
 import { StatCard } from "@/components/common/StatCard";
 import { JobCard } from "@/components/common/JobCard";
 import { Badge, Button, Card, Switch } from "@/components/ui";
-import { jobsApi } from "@/services/mockJobs";
+import { jobsApi } from "@/api/jobsApi";
 import { bidsApi } from "@/services/mockBids";
 import styles from "./ArtisanDashboardPage.module.css";
 

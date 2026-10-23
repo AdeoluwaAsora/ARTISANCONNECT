@@ -6,7 +6,11 @@ export const postJobSchema = z
     trade: z.string().min(1, "Select the trade this job needs"),
     description: z.string().min(20, "Add a bit more detail (at least 20 characters)"),
     address: z.string().min(4, "Enter the job address"),
-    city: z.string().min(2, "Enter a city"),
+    city: z.string().min(1, "Select a city"),
+    // Set only when the customer taps "Use my current location"; otherwise the
+    // city's centre point is used when the job is submitted.
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
     budgetMin: z.number({ invalid_type_error: "Enter a minimum budget" }).min(500, "Minimum budget is too low"),
     budgetMax: z.number({ invalid_type_error: "Enter a maximum budget" }),
     photos: z.array(z.object({ id: z.string(), url: z.string() })),

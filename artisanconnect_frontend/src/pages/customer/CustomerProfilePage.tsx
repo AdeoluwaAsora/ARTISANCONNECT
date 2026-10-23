@@ -8,7 +8,7 @@ import { Input } from "@/components/forms";
 import { ArtisanCard } from "@/features/artisans/components/ArtisanCard";
 import { JobCard } from "@/components/common/JobCard";
 import { artisansApi } from "@/services/mockArtisans";
-import { jobsApi } from "@/services/mockJobs";
+import { jobsApi } from "@/api/jobsApi";
 import styles from "./CustomerProfilePage.module.css";
 
 const tabs = [

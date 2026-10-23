@@ -195,8 +195,12 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   console — see Known Gaps), reset-password (single-use token, revokes all sessions)
 - **Profiles:** `GET/PUT /api/v1/users/me`, `PUT /api/v1/artisans/me/profile`
 - **Jobs:** create, get by id, get own (paginated), update (owner-only, Open-status-only),
-  cancel (owner-only, Open-status-only). `Job.Status`: `Open -> Assigned -> InProgress ->
-  Completed`, or `-> Cancelled` — nothing outside this module sets the latter three yet.
+  cancel (owner-only, Open-status-only), and `GET /api/v1/jobs/open` (Artisan-only, paginated,
+  optional `?trade=` filter) for the artisan "Find Jobs" page. Budget is a range:
+  `BudgetMin`/`BudgetMax` (validated max >= min); migration `SplitJobBudgetIntoRange` renamed
+  the old `Budget` column so existing data survives. `Job.Status`: `Open -> Assigned ->
+  InProgress -> Completed`, or `-> Cancelled` — nothing outside this module sets the latter
+  three yet.
 
 ### Frontend (built, wired to the real backend where endpoints exist)
 - **Landing page** — full marketing site: hero (custom radar illustration), 9 trade
@@ -212,7 +216,10 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   no Google Maps/Mapbox API key available yet; swap point commented in `ArtisansMapView.tsx`)
 - **Profiles** — Customer (saved artisans, job history, settings tabs), Artisan (portfolio,
   certificates, reviews, settings tabs), public artisan profile page
-- **Jobs** — 5-step Post Job wizard, Job Details page, My Jobs / Find Jobs listings
+- **Jobs** — 5-step Post Job wizard, Job Details page, My Jobs / Find Jobs listings, all on
+  the real backend via `src/api/jobsApi.ts`. The Location step has a "Use my current
+  location" (browser GPS) button; if skipped, the job is placed at the centre of the chosen
+  city from `features/jobs/cities.ts`. Replace with real geocoding once a maps key exists.
 - **Bidding** — submit/accept/reject UI, wired into Job Details page
 - **Chat** — conversation list, message bubbles (read receipts), typing indicator, image
   attachments
@@ -222,14 +229,13 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
 ## Frontend/backend are currently OUT OF SYNC on several features
 
 This is the most important thing to know before writing new code: several features have a
-**fully built frontend UI running on mock data, but zero backend support**, while Jobs has
-**real backend endpoints the frontend isn't using yet**. Straightening this out should happen
-before building anything net-new.
+**fully built frontend UI running on mock data, but zero backend support**. Auth and Jobs are
+now fully wired end to end.
 
 | Feature | Frontend | Backend |
 |---|---|---|
 | Auth | real | real |
-| Jobs (create/get/list/update/cancel) | mock (`mockJobs.ts`) | real, unused by frontend |
+| Jobs (create/get/list/open-list/cancel) | real (`api/jobsApi.ts`); job photos local-only; "Mark complete" not available until Contracts | real |
 | Bidding | mock (`mockBids.ts`) | not started |
 | Find Nearby Artisans | mock + stylized map | not started (PostGIS column exists on `Job`, not on `ArtisanProfile` yet) |
 | Chat | mock (`mockChat.ts`, simulated real-time) | not started (SignalR wired up, no hub built; JWT-over-SignalR already configured) |
@@ -241,34 +247,16 @@ before building anything net-new.
 | Trust/anti-fraud | not started | not started |
 | File uploads | local preview only (`URL.createObjectURL`), nothing persisted | no storage abstraction built |
 
-**Recommended next step: wire Jobs to the real backend first** — it's the one place backend
-is ahead of frontend, and it's low-risk, high-value (unblocks testing Bidding realistically
-once that's built too).
+**Recommended next step: Bidding** — next unchecked item below.
 
 ---
 
-## Known immediate fix — artisan registration field name
+## Fixed — artisan registration field name
 
-The frontend was recently hitting this validation error:
-```json
-{ "errors": ["Trade is required for artisan registration.", "Years of experience is required for artisan registration."] }
-```
-**Resolved by this doc**: the backend's actual field name is **`yearsOfExperience`**
-(camelCase, matching the backend's own wording), not `yearsExperience` as the frontend
-currently has it. Fix:
-
-1. `src/types/auth.ts` — add to `RegisterPayload`:
-   ```ts
-   trade?: string;
-   yearsOfExperience?: number;
-   ```
-2. `src/pages/auth/ArtisanRegisterPage.tsx` — in the `authApi.register({...})` call, add:
-   ```ts
-   trade: values.trade,
-   yearsOfExperience: values.yearsExperience,
-   ```
-   (the form field itself can keep its internal name `yearsExperience` — only the API payload
-   key needs to match the backend exactly)
+Artisan sign-up used to fail with "Trade is required… / Years of experience is required…"
+because the register page never sent those fields. It now sends `yearsOfExperience` and
+`trade` — **as the enum number** (`TradeValue` in `src/types/api.ts`), since the API has no
+string-enum converter (see Conventions).
 
 ---
 
@@ -280,8 +268,8 @@ from its mock service to the real endpoint** (the mock services were deliberatel
 matching function signatures so this swap shouldn't require touching the consuming
 components/pages).
 
-- [ ] **Fix artisan registration field name** (see above — small, do first)
-- [ ] **Wire frontend Jobs to real backend** (backend already built — see sync table above)
+- [x] **Fix artisan registration field name** (see above)
+- [x] **Wire frontend Jobs to real backend** (plus budget range, open-jobs endpoint, GPS/city location)
 - [ ] **Bidding** — `Bid` entity (JobId, ArtisanId, Amount, Message, Status). Submit/edit/
       withdraw (Artisan), view-all/accept (Customer). Accepting one bid must, in the same
       transaction: set `Job.Status = Assigned`, set `Job.AssignedArtisanId`, set every other
@@ -342,6 +330,12 @@ components/pages).
   the wrong layer.
 - **Ownership/role checks happen in the Handler**, not just via `[Authorize]` (the policy
   can't know which specific job belongs to which specific customer).
+- **Enums: numbers in, names out.** No `JsonStringEnumConverter` is registered, so request
+  bodies must send enums as numbers (`role`, `trade`, `requiredTrade`, `urgency`), while
+  responses return them as names (`"AcTechnician"`, `"InProgress"`). Query-string enums
+  (e.g. `?trade=`) accept either.
+- **Renaming a column?** Hand-edit the generated migration to use `RenameColumn` — EF's default
+  is drop + add, which loses data (see `SplitJobBudgetIntoRange`).
 
 ### Frontend
 - **CSS Modules only** — no Tailwind/Bootstrap/MUI. All colors/spacing/type pull from
@@ -349,6 +343,12 @@ components/pages).
 - **Mock services pattern** (`src/services/mock*.ts`) simulate latency via a shared `delay()`
   helper and match the function signatures a real API module would use, so swapping to real
   endpoints is a contained change.
+- **Real API modules** live in `src/api/*Api.ts` (template: `jobsApi.ts`). They keep the mock's
+  function names and return types, map backend `*Result` shapes to the frontend types, and use
+  `unwrap()` / `rethrowApiError()` from `src/api/unwrap.ts` so pages get plain data or an
+  `ApiError` carrying the backend's message. `services/mockJobs.ts` is now unused.
+- Stale duplicate to delete: `src/lib/apiClient.ts` (unused; the real client is
+  `src/api/client.ts`).
 - **Auth session lives in plain module state** (`authSession.ts`), not React state, so the
   Axios interceptor (`api/client.ts`) can reach it without a circular import;
   `AuthContext.tsx` wraps it for components via `useAuth()`.
