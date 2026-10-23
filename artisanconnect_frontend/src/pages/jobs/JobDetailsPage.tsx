@@ -5,7 +5,7 @@ import { FiMapPin, FiClock, FiX, FiCheckCircle, FiMessageCircle } from "react-ic
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/store/AuthContext";
 import { Card, Badge, Button } from "@/components/ui";
-import { jobsApi } from "@/services/mockJobs";
+import { jobsApi } from "@/api/jobsApi";
 import { bidsApi } from "@/services/mockBids";
 import { BidCard } from "@/features/bids/components/BidCard";
 import { SubmitBidForm } from "@/features/bids/components/SubmitBidForm";

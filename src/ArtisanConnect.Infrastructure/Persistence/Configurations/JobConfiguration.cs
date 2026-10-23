@@ -14,7 +14,9 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.Description).IsRequired().HasMaxLength(2000);
         builder.Property(j => j.Address).HasMaxLength(500);
 
-        builder.Property(j => j.Budget).HasPrecision(10, 2);
+        builder.Property(j => j.BudgetMin).HasPrecision(10, 2);
+
+        builder.Property(j => j.BudgetMax).HasPrecision(10, 2);
 
         builder.Property(j => j.RequiredTrade)
             .IsRequired()

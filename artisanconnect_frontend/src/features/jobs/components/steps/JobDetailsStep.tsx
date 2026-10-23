@@ -1,17 +1,15 @@
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { Input, Select, Textarea } from "@/components/forms";
 import type { PostJobFormValues } from "@/features/jobs/schemas";
+import { TRADE_LABELS, type TradeName } from "@/types/api";
 import styles from "./steps.module.css";
 
-const tradeOptions = [
-  { value: "Electrician", label: "Electrician" },
-  { value: "Plumber", label: "Plumber" },
-  { value: "Carpenter", label: "Carpenter" },
-  { value: "Mechanic", label: "Mechanic" },
-  { value: "Painter", label: "Painter" },
-  { value: "AC Technician", label: "AC Technician" },
-  { value: "Solar Installer", label: "Solar Installer" },
-];
+// Option values are backend trade names (e.g. "AcTechnician"); jobsApi.create
+// converts them to the enum number the API expects.
+const tradeOptions = (Object.keys(TRADE_LABELS) as TradeName[]).map((name) => ({
+  value: name,
+  label: TRADE_LABELS[name],
+}));
 
 interface JobDetailsStepProps {
   register: UseFormRegister<PostJobFormValues>;

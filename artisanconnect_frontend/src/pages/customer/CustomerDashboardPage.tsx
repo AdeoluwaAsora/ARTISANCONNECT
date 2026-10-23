@@ -7,7 +7,7 @@ import { StatCard } from "@/components/common/StatCard";
 import { JobCard } from "@/components/common/JobCard";
 import { ArtisanCard } from "@/features/artisans/components/ArtisanCard";
 import { Button, Card } from "@/components/ui";
-import { jobsApi } from "@/services/mockJobs";
+import { jobsApi } from "@/api/jobsApi";
 import { artisansApi } from "@/services/mockArtisans";
 import styles from "./CustomerDashboardPage.module.css";
 

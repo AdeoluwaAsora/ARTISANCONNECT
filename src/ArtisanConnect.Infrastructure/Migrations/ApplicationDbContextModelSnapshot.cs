@@ -96,7 +96,11 @@ namespace ArtisanConnect.Infrastructure.Migrations
                     b.Property<Guid?>("AssignedArtisanId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("Budget")
+                    b.Property<decimal>("BudgetMax")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<decimal>("BudgetMin")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
 

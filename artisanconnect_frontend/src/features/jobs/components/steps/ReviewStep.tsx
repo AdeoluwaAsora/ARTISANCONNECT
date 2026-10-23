@@ -1,4 +1,5 @@
 import type { PostJobFormValues } from "@/features/jobs/schemas";
+import { tradeLabel } from "@/types/api";
 import styles from "./ReviewStep.module.css";
 import stepStyles from "./steps.module.css";
 
@@ -18,7 +19,7 @@ export function ReviewStep({ values }: ReviewStepProps) {
         </div>
         <div className={styles.row}>
           <dt className="body-sm">Trade</dt>
-          <dd className={styles.value}>{values.trade || "—"}</dd>
+          <dd className={styles.value}>{values.trade ? tradeLabel(values.trade) : "—"}</dd>
         </div>
         <div className={styles.row}>
           <dt className="body-sm">Description</dt>
@@ -28,6 +29,13 @@ export function ReviewStep({ values }: ReviewStepProps) {
           <dt className="body-sm">Location</dt>
           <dd className={styles.value}>
             {values.address ? `${values.address}, ${values.city}` : "—"}
+            <span className="body-sm">
+              {values.latitude !== undefined
+                ? " (exact location shared)"
+                : values.city
+                  ? ` (placed at ${values.city} city centre)`
+                  : ""}
+            </span>
           </dd>
         </div>
         <div className={styles.row}>

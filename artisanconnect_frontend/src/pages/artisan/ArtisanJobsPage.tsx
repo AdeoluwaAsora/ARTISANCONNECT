@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { JobCard } from "@/components/common/JobCard";
-import { jobsApi } from "@/services/mockJobs";
+import { jobsApi } from "@/api/jobsApi";
 import styles from "./ArtisanJobsPage.module.css";
 
 export function ArtisanJobsPage() {
