@@ -1,11 +1,14 @@
 import { Select, Checkbox } from "@/components/forms";
 import { Card } from "@/components/ui";
+import { TRADE_LABELS, type TradeName } from "@/types/api";
 import styles from "./ArtisanFilters.module.css";
 
+// A minimum-rating filter returns once Reviews & Ratings exists.
 export interface ArtisanFilterState {
+  /** Backend trade name, e.g. "AcTechnician"; "" for all trades. */
   trade: string;
+  /** "" means the server's default radius (50 km). */
   maxDistanceKm: string;
-  minRating: string;
   verifiedOnly: boolean;
   onlineOnly: boolean;
 }
@@ -13,31 +16,22 @@ export interface ArtisanFilterState {
 export const defaultFilters: ArtisanFilterState = {
   trade: "",
   maxDistanceKm: "",
-  minRating: "",
   verifiedOnly: false,
   onlineOnly: false,
 };
 
-const tradeOptions = [
-  { value: "Electrician", label: "Electrician" },
-  { value: "Plumber", label: "Plumber" },
-  { value: "Carpenter", label: "Carpenter" },
-  { value: "Mechanic", label: "Mechanic" },
-  { value: "Painter", label: "Painter" },
-  { value: "AC Technician", label: "AC Technician" },
-];
+const tradeOptions = (Object.keys(TRADE_LABELS) as TradeName[]).map((name) => ({
+  value: name,
+  label: TRADE_LABELS[name],
+}));
 
 const distanceOptions = [
   { value: "1", label: "Within 1 km" },
   { value: "3", label: "Within 3 km" },
   { value: "5", label: "Within 5 km" },
   { value: "10", label: "Within 10 km" },
-];
-
-const ratingOptions = [
-  { value: "4.5", label: "4.5 and up" },
-  { value: "4", label: "4.0 and up" },
-  { value: "3.5", label: "3.5 and up" },
+  { value: "25", label: "Within 25 km" },
+  { value: "100", label: "Within 100 km" },
 ];
 
 export interface ArtisanFiltersProps {
@@ -60,18 +54,10 @@ export function ArtisanFilters({ value, onChange }: ArtisanFiltersProps) {
 
       <Select
         label="Distance"
-        placeholder="Any distance"
+        placeholder="Within 50 km"
         options={distanceOptions}
         value={value.maxDistanceKm}
         onChange={(e) => onChange({ ...value, maxDistanceKm: e.target.value })}
-      />
-
-      <Select
-        label="Minimum rating"
-        placeholder="Any rating"
-        options={ratingOptions}
-        value={value.minRating}
-        onChange={(e) => onChange({ ...value, minRating: e.target.value })}
       />
 
       <div className={styles.checkboxes}>

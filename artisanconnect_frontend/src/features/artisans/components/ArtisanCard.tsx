@@ -53,16 +53,24 @@ export function ArtisanCard({
             Verified
           </Badge>
         )}
-        <Badge tone="neutral">{artisan.distanceKm} km away</Badge>
+        {artisan.distanceKm !== null && <Badge tone="neutral">{artisan.distanceKm} km away</Badge>}
       </div>
 
-      {!compact && <p className={`body-sm ${styles.bio}`}>{artisan.bio}</p>}
+      {!compact && artisan.bio && <p className={`body-sm ${styles.bio}`}>{artisan.bio}</p>}
 
       <div className={styles.footer}>
         <span className={`num ${styles.rating}`}>
-          ★ {artisan.rating} <span className={styles.reviewCount}>({artisan.reviewCount})</span>
+          {artisan.rating !== null ? (
+            <>
+              ★ {artisan.rating} <span className={styles.reviewCount}>({artisan.reviewCount ?? 0})</span>
+            </>
+          ) : (
+            <span className={styles.reviewCount}>{artisan.yearsExperience} yrs experience</span>
+          )}
         </span>
-        <span className={`num ${styles.rate}`}>₦{artisan.hourlyRate.toLocaleString()}/hr</span>
+        <span className={`num ${styles.rate}`}>
+          {artisan.hourlyRate !== null ? `₦${artisan.hourlyRate.toLocaleString()}/hr` : "Rate on request"}
+        </span>
       </div>
 
       <Link to={`/artisans/${artisan.id}`}>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FiBriefcase, FiCheckCircle, FiClock, FiDollarSign } from "react-icons/fi";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -9,13 +9,49 @@ import { JobCard } from "@/components/common/JobCard";
 import { Badge, Button, Card, Switch } from "@/components/ui";
 import { jobsApi } from "@/api/jobsApi";
 import { bidsApi } from "@/api/bidsApi";
+import { artisansApi } from "@/api/artisansApi";
+import { TradeValue, isTradeName } from "@/types/api";
 import { bidStatusTone } from "@/features/bids/status";
 import styles from "./ArtisanDashboardPage.module.css";
 
 export function ArtisanDashboardPage() {
   usePageTitle("Dashboard");
   const { user } = useAuth();
-  const [isOnline, setIsOnline] = useState(true);
+  const queryClient = useQueryClient();
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+
+  const { data: profile } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => artisansApi.getMyProfile(),
+  });
+  const artisan = profile?.artisanProfile ?? null;
+  const isOnline = artisan?.isAvailable ?? false;
+
+  // The profile endpoint replaces every field, so resend the current values
+  // with only availability changed.
+  const setIsOnline = async (next: boolean) => {
+    if (!artisan || !isTradeName(artisan.trade) || isSavingAvailability) return;
+    setIsSavingAvailability(true);
+    setAvailabilityError(null);
+    try {
+      const updated = await artisansApi.updateMyProfile({
+        trade: TradeValue[artisan.trade],
+        yearsOfExperience: artisan.yearsOfExperience,
+        bio: artisan.bio,
+        hourlyRate: artisan.hourlyRate,
+        isAvailable: next,
+        latitude: artisan.latitude,
+        longitude: artisan.longitude,
+        city: artisan.city,
+      });
+      queryClient.setQueryData(["me"], updated);
+    } catch (err) {
+      setAvailabilityError(err instanceof Error ? err.message : "Couldn't update your availability.");
+    } finally {
+      setIsSavingAvailability(false);
+    }
+  };
 
   const { data: openJobs, isLoading: jobsLoading } = useQuery({
     queryKey: ["jobs", "open"],
@@ -36,14 +72,39 @@ export function ArtisanDashboardPage() {
         <div>
           <div className={styles.welcomeTop}>
             <h2 className="heading-lg">Welcome back, {user?.firstName ?? "there"}</h2>
-            <Badge tone="accent" icon={<FiCheckCircle />}>
-              Verified
-            </Badge>
+            {artisan?.isVerified && (
+              <Badge tone="accent" icon={<FiCheckCircle />}>
+                Verified
+              </Badge>
+            )}
           </div>
           <p className="body-base">Here's your activity for today.</p>
+          {availabilityError && (
+            <p className="body-sm" role="alert">
+              {availabilityError}
+            </p>
+          )}
         </div>
-        <Switch checked={isOnline} onChange={setIsOnline} label={isOnline ? "Online" : "Offline"} />
+        {artisan && (
+          <Switch
+            checked={isOnline}
+            onChange={(next) => void setIsOnline(next)}
+            label={isSavingAvailability ? "Saving…" : isOnline ? "Online" : "Offline"}
+          />
+        )}
       </Card>
+
+      {artisan && artisan.latitude === null && (
+        <Card className={styles.locationPrompt}>
+          <p className="body-sm">
+            <strong>Customers can't find you yet.</strong> Set your service location so you show
+            up when customers search for artisans nearby.
+          </p>
+          <Link to="/artisan/profile?tab=settings">
+            <Button size="sm">Set my location</Button>
+          </Link>
+        </Card>
+      )}
 
       <div className={styles.statsGrid}>
         <StatCard label="Jobs today" value="2" icon={<FiBriefcase size={20} />} tone="primary" />

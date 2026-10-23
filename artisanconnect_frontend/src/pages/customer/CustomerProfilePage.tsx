@@ -1,13 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { FiUser, FiHeart, FiClock, FiSettings } from "react-icons/fi";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/store/AuthContext";
 import { Card, Tabs, Button } from "@/components/ui";
 import { Input } from "@/components/forms";
-import { ArtisanCard } from "@/features/artisans/components/ArtisanCard";
 import { JobCard } from "@/components/common/JobCard";
-import { artisansApi } from "@/services/mockArtisans";
 import { jobsApi } from "@/api/jobsApi";
 import styles from "./CustomerProfilePage.module.css";
 
@@ -23,11 +21,6 @@ export function CustomerProfilePage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "overview";
-
-  const { data: savedArtisans } = useQuery({
-    queryKey: ["artisans", "saved"],
-    queryFn: () => artisansApi.getNearby(),
-  });
 
   const { data: jobs } = useQuery({
     queryKey: ["jobs", "mine"],
@@ -72,17 +65,17 @@ export function CustomerProfilePage() {
           <Card>
             <h3 className="heading-sm">Activity summary</h3>
             <p className="body-base">{jobs?.length ?? 0} jobs posted in total.</p>
-            <p className="body-base">{savedArtisans?.length ?? 0} artisans saved.</p>
           </Card>
         </div>
       )}
 
       {activeTab === "saved" && (
-        <div className={styles.grid}>
-          {savedArtisans?.slice(0, 6).map((artisan) => (
-            <ArtisanCard key={artisan.id} artisan={artisan} compact />
-          ))}
-        </div>
+        <Card>
+          <p className="body-sm">
+            Saving artisans isn't available yet. For now, find artisans near you on the{" "}
+            <Link to="/find-artisans">Find artisans</Link> page.
+          </p>
+        </Card>
       )}
 
       {activeTab === "history" && (

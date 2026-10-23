@@ -22,4 +22,10 @@ public class ArtisanProfileResult
 	public string? Bio { get; init; }
 	public decimal? HourlyRate { get; init; }
 	public string? ProfilePictureUrl { get; init; }
+
+	// The artisan's own service location. Only returned to the artisan
+	// themselves (GET /users/me); public endpoints expose distance only.
+	public double? Latitude { get; init; }
+	public double? Longitude { get; init; }
+	public string? City { get; init; }
 }

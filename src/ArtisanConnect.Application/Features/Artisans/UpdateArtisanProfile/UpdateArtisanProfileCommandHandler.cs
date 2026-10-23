@@ -4,6 +4,7 @@ using ArtisanConnect.Application.Common.Models;
 using ArtisanConnect.Application.Features.Users.GetMyProfile;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
 
 namespace ArtisanConnect.Application.Features.Artisans.UpdateArtisanProfile;
 
@@ -43,6 +44,10 @@ public class UpdateArtisanProfileCommandHandler : IRequestHandler<UpdateArtisanP
         artisanProfile.Bio = request.Bio;
         artisanProfile.HourlyRate = request.HourlyRate;
         artisanProfile.IsAvailable = request.IsAvailable;
+        artisanProfile.Location = request.Latitude.HasValue && request.Longitude.HasValue
+            ? new Point(request.Longitude.Value, request.Latitude.Value) { SRID = 4326 }
+            : null;
+        artisanProfile.City = string.IsNullOrWhiteSpace(request.City) ? null : request.City.Trim();
 
         await _context.SaveChangesAsync(cancellationToken);
 

@@ -50,7 +50,10 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
                     IsAvailable = artisanProfile.IsAvailable,
                     Bio = artisanProfile.Bio,
                     HourlyRate = artisanProfile.HourlyRate,
-                    ProfilePictureUrl = artisanProfile.ProfilePictureUrl
+                    ProfilePictureUrl = artisanProfile.ProfilePictureUrl,
+                    Latitude = artisanProfile.Location?.Y,
+                    Longitude = artisanProfile.Location?.X,
+                    City = artisanProfile.City
                 };
             }
         }

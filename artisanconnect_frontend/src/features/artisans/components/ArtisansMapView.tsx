@@ -47,7 +47,9 @@ export function ArtisansMapView({ artisans }: ArtisansMapViewProps) {
             className={`${styles.pin} ${selectedId === artisan.id ? styles.pinActive : ""}`}
             style={{ top: pos.top, left: pos.left }}
             onClick={() => setSelectedId(artisan.id)}
-            aria-label={`${artisan.name}, ${artisan.trade}, ${artisan.distanceKm} km away`}
+            aria-label={`${artisan.name}, ${artisan.trade}${
+              artisan.distanceKm !== null ? `, ${artisan.distanceKm} km away` : ""
+            }`}
           >
             <PulseDot tone={artisan.isOnline ? "accent" : "slate"} animated={artisan.isOnline} />
           </button>
@@ -64,7 +66,12 @@ export function ArtisansMapView({ artisans }: ArtisansMapViewProps) {
             </div>
           </div>
           <p className="body-sm">
-            ★ {selected.rating} · {selected.distanceKm} km away
+            {[
+              selected.rating !== null ? `★ ${selected.rating}` : null,
+              selected.distanceKm !== null ? `${selected.distanceKm} km away` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
           <Link to={`/artisans/${selected.id}`}>
             <Button size="sm" fullWidth>

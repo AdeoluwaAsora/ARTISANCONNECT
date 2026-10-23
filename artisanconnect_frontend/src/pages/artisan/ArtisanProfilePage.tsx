@@ -1,14 +1,13 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FiImage, FiAward, FiStar, FiSettings, FiCheckCircle, FiPlus } from "react-icons/fi";
+import { useSearchParams } from "react-router-dom";
+import { FiImage, FiAward, FiStar, FiSettings, FiCheckCircle } from "react-icons/fi";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useAuth } from "@/store/AuthContext";
-import { Card, Tabs, Badge, Button } from "@/components/ui";
-import { Input, Select } from "@/components/forms";
-import { artisansApi } from "@/services/mockArtisans";
+import { Card, Tabs, Badge } from "@/components/ui";
+import { artisansApi } from "@/api/artisansApi";
+import { ArtisanSettingsForm } from "@/features/artisans/components/ArtisanSettingsForm";
+import { initialsOf } from "@/lib/initials";
+import { tradeLabel } from "@/types/api";
 import styles from "./ArtisanProfilePage.module.css";
-
-const MOCK_SELF_ARTISAN_ID = "artisan-1";
 
 const tabs = [
   { key: "portfolio", label: "Portfolio", icon: <FiImage size={15} /> },
@@ -17,113 +16,83 @@ const tabs = [
   { key: "settings", label: "Settings", icon: <FiSettings size={15} /> },
 ];
 
-const tradeOptions = [
-  { value: "Electrician", label: "Electrician" },
-  { value: "Plumber", label: "Plumber" },
-  { value: "Carpenter", label: "Carpenter" },
-];
-
 export function ArtisanProfilePage() {
   usePageTitle("Profile & settings");
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("portfolio");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "portfolio";
 
-  const { data: artisan } = useQuery({
-    queryKey: ["artisans", MOCK_SELF_ARTISAN_ID],
-    queryFn: () => artisansApi.getById(MOCK_SELF_ARTISAN_ID),
+  const { data: profile, isLoading, error } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => artisansApi.getMyProfile(),
   });
+
+  if (isLoading) return <p className="body-sm">Loading your profile…</p>;
+  if (error || !profile?.artisanProfile) {
+    return (
+      <p className="body-sm" role="alert">
+        {error instanceof Error ? error.message : "Couldn't load your artisan profile."}
+      </p>
+    );
+  }
+
+  const artisan = profile.artisanProfile;
+  const fullName = `${profile.firstName} ${profile.lastName}`;
 
   return (
     <div className={styles.page}>
       <Card className={styles.headerCard}>
         <span className={styles.avatar} aria-hidden="true">
-          {user ? `${user.firstName[0]}${user.lastName[0]}` : "?"}
+          {initialsOf(fullName)}
         </span>
         <div className={styles.headerInfo}>
           <div className={styles.nameRow}>
-            <h2 className="heading-lg">
-              {user ? `${user.firstName} ${user.lastName}` : "Guest"}
-            </h2>
-            <Badge tone="accent" icon={<FiCheckCircle />}>
-              Verified
-            </Badge>
+            <h2 className="heading-lg">{fullName}</h2>
+            {artisan.isVerified ? (
+              <Badge tone="accent" icon={<FiCheckCircle />}>
+                Verified
+              </Badge>
+            ) : (
+              <Badge tone="warning">Not yet verified</Badge>
+            )}
           </div>
           <p className="body-sm">
-            {artisan?.trade} · ★ {artisan?.rating} ({artisan?.reviewCount} reviews) ·{" "}
-            {artisan?.jobsCompleted} jobs completed
+            {[
+              tradeLabel(artisan.trade),
+              `${artisan.yearsOfExperience} years experience`,
+              artisan.city ?? "No service location set",
+            ].join(" · ")}
           </p>
         </div>
       </Card>
 
-      <Tabs items={tabs} activeKey={activeTab} onChange={setActiveTab} />
+      <Tabs items={tabs} activeKey={activeTab} onChange={(key) => setSearchParams({ tab: key })} />
 
       {activeTab === "portfolio" && (
-        <div className={styles.portfolioGrid}>
-          <button type="button" className={styles.addTile}>
-            <FiPlus size={22} />
-            <span className="body-sm">Add photo</span>
-          </button>
-          {artisan?.portfolio.map((item) => (
-            <div key={item.id} className={styles.portfolioTile}>
-              <span className={styles.portfolioPlaceholder} aria-hidden="true" />
-              <span className={styles.portfolioCaption}>{item.caption}</span>
-            </div>
-          ))}
-        </div>
+        <Card>
+          <p className="body-sm">
+            Portfolio photos are coming soon. You'll be able to upload pictures of your work here.
+          </p>
+        </Card>
       )}
 
       {activeTab === "certificates" && (
-        <div className={styles.certList}>
-          {artisan?.certificates.map((cert) => (
-            <Card key={cert.id} className={styles.certCard}>
-              <div>
-                <h4 className="heading-sm">{cert.name}</h4>
-                <p className="body-sm">
-                  {cert.issuer} · Issued {cert.issuedYear}
-                </p>
-              </div>
-              {cert.verified ? (
-                <Badge tone="accent" icon={<FiCheckCircle />}>
-                  Verified
-                </Badge>
-              ) : (
-                <Badge tone="warning">Pending review</Badge>
-              )}
-            </Card>
-          ))}
-          <Button variant="outline" leftIcon={<FiPlus />} className={styles.addCertButton}>
-            Add certificate
-          </Button>
-        </div>
+        <Card>
+          <p className="body-sm">
+            Certificate uploads are coming soon. Once added and checked, they'll show as verified on
+            your public profile.
+          </p>
+        </Card>
       )}
 
       {activeTab === "reviews" && (
-        <div className={styles.reviewsList}>
-          {artisan?.reviews.map((review) => (
-            <Card key={review.id} className={styles.reviewCard}>
-              <div className={styles.reviewHeader}>
-                <span className="heading-sm">{review.customerName}</span>
-                <span className={`num ${styles.reviewRating}`}>★ {review.rating}</span>
-              </div>
-              <p className="body-sm">{review.comment}</p>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {activeTab === "settings" && (
-        <Card className={styles.settingsCard}>
-          <h3 className="heading-sm">Profile information</h3>
-          <div className={styles.settingsForm}>
-            <Input label="First name" defaultValue={user?.firstName} />
-            <Input label="Last name" defaultValue={user?.lastName} />
-            <Input label="Email address" type="email" defaultValue={user?.email} />
-            <Select label="Primary trade" options={tradeOptions} defaultValue={artisan?.trade} />
-            <Input label="Hourly rate (₦)" type="number" defaultValue={artisan?.hourlyRate} />
-          </div>
-          <Button className={styles.saveButton}>Save changes</Button>
+        <Card>
+          <p className="body-sm">
+            No reviews yet. Customers will be able to review you after you complete a job.
+          </p>
         </Card>
       )}
+
+      {activeTab === "settings" && <ArtisanSettingsForm profile={profile} />}
     </div>
   );
 }
