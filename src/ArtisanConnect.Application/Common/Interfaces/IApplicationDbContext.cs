@@ -10,5 +10,6 @@ public interface IApplicationDbContext
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
     DbSet<Job> Jobs { get; }
     DbSet<ArtisanProfile> ArtisanProfiles { get; }
+    DbSet<Bid> Bids { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

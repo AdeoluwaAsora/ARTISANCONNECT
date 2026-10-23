@@ -20,6 +20,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Job> Jobs => Set<Job>();
     public DbSet<ArtisanProfile> ArtisanProfiles => Set<ArtisanProfile>();
+    public DbSet<Bid> Bids => Set<Bid>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

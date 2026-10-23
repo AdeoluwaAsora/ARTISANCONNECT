@@ -199,8 +199,25 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   optional `?trade=` filter) for the artisan "Find Jobs" page. Budget is a range:
   `BudgetMin`/`BudgetMax` (validated max >= min); migration `SplitJobBudgetIntoRange` renamed
   the old `Budget` column so existing data survives. `Job.Status`: `Open -> Assigned ->
-  InProgress -> Completed`, or `-> Cancelled` — nothing outside this module sets the latter
-  three yet.
+  InProgress -> Completed`, or `-> Cancelled` — accepting a bid sets `Assigned`; nothing sets
+  `InProgress`/`Completed` yet. `JobResult` includes `BidCount` (excludes withdrawn) and
+  `AssignedArtisanName`; every handler maps through `Features/Jobs/JobProjections.cs`.
+- **Bids:** `Bid` entity (JobId, ArtisanId = artisan's `User.Id`, Amount, EtaMinutes, Message,
+  Status `Pending/Accepted/Rejected/Withdrawn`). Endpoints:
+  - `POST /api/v1/jobs/{jobId}/bids` (Artisan) — job must be Open; one active bid per
+    artisan per job (can bid again after withdrawing).
+  - `GET /api/v1/jobs/{jobId}/bids` — job owner sees all live bids; an artisan sees only
+    their own; anyone else gets 403.
+  - `GET /api/v1/bids/my` (Artisan), `PUT /api/v1/bids/{id}` and
+    `POST /api/v1/bids/{id}/withdraw` (owning Artisan, Pending bids only).
+  - `POST /api/v1/bids/{id}/accept` (owning Customer) — in one `SaveChangesAsync`: bid
+    Accepted, job Assigned + `AssignedArtisanId`, every other pending bid Rejected.
+  - `POST /api/v1/bids/{id}/reject` (owning Customer).
+  Two filtered unique indexes back the rules in the database: one active bid per
+  artisan/job, and one Accepted bid per job (a racing second accept gets a 409).
+  **Migration:** if `Infrastructure/Migrations/` has no `*_AddBids.cs` yet, generate it with
+  `dotnet ef migrations add AddBids …` (see "How to run") — it was written where NuGet was
+  unreachable, so EF couldn't generate it there.
 
 ### Frontend (built, wired to the real backend where endpoints exist)
 - **Landing page** — full marketing site: hero (custom radar illustration), 9 trade
@@ -220,7 +237,10 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   the real backend via `src/api/jobsApi.ts`. The Location step has a "Use my current
   location" (browser GPS) button; if skipped, the job is placed at the centre of the chosen
   city from `features/jobs/cities.ts`. Replace with real geocoding once a maps key exists.
-- **Bidding** — submit/accept/reject UI, wired into Job Details page
+- **Bidding** — submit/withdraw (artisan) and accept/reject (customer) on the Job Details
+  page, plus My Bids and dashboard lists, all on the real backend via `src/api/bidsApi.ts`.
+  Artisan rating and distance on bid cards are hidden until Reviews / Nearby Search exist.
+  Editing a bid is API-only (`bidsApi.update`); there's no edit form yet.
 - **Chat** — conversation list, message bubbles (read receipts), typing indicator, image
   attachments
 
@@ -236,7 +256,7 @@ now fully wired end to end.
 |---|---|---|
 | Auth | real | real |
 | Jobs (create/get/list/open-list/cancel) | real (`api/jobsApi.ts`); job photos local-only; "Mark complete" not available until Contracts | real |
-| Bidding | mock (`mockBids.ts`) | not started |
+| Bidding | real (`api/bidsApi.ts`); no edit-bid form yet | real |
 | Find Nearby Artisans | mock + stylized map | not started (PostGIS column exists on `Job`, not on `ArtisanProfile` yet) |
 | Chat | mock (`mockChat.ts`, simulated real-time) | not started (SignalR wired up, no hub built; JWT-over-SignalR already configured) |
 | Notifications | static badge only, no real list | not started |
@@ -247,7 +267,7 @@ now fully wired end to end.
 | Trust/anti-fraud | not started | not started |
 | File uploads | local preview only (`URL.createObjectURL`), nothing persisted | no storage abstraction built |
 
-**Recommended next step: Bidding** — next unchecked item below.
+**Recommended next step: Find Nearby Artisans** — next unchecked item below.
 
 ---
 
@@ -270,10 +290,7 @@ components/pages).
 
 - [x] **Fix artisan registration field name** (see above)
 - [x] **Wire frontend Jobs to real backend** (plus budget range, open-jobs endpoint, GPS/city location)
-- [ ] **Bidding** — `Bid` entity (JobId, ArtisanId, Amount, Message, Status). Submit/edit/
-      withdraw (Artisan), view-all/accept (Customer). Accepting one bid must, in the same
-      transaction: set `Job.Status = Assigned`, set `Job.AssignedArtisanId`, set every other
-      bid on that job to `Rejected`. Frontend UI already built — swap `mockBids.ts`.
+- [x] **Bidding** — see "Bids" under What's DONE. Mock `mockBids.ts`/`mockJobs.ts` deleted.
 - [ ] **Find Nearby Artisans** — first real use of PostGIS. Add `Location` column to
       `ArtisanProfile`, query via `ST_DWithin`. Filters: trade, rating (needs Reviews first),
       distance, availability, verified-only. Frontend already built — swap `mockArtisans.ts`
@@ -304,6 +321,11 @@ components/pages).
 - Email is not actually sent (logged only) — replace `LoggingEmailSender` before Forgot
   Password is production-usable.
 - No refresh-token cleanup job (expired/revoked tokens accumulate indefinitely).
+- **Optimistic concurrency is not actually on.** `BaseEntity.RowVersion`'s comment says it's
+  mapped to Postgres `xmin`, but no EF configuration does that; it's a plain `bigint` column
+  that never changes. Bidding relies on unique indexes instead. Wire up `xmin`
+  (`.IsRowVersion()`) before features where two writers can collide on the same row (Admin,
+  Payments).
 - No rate limiting tuned beyond `login`/`forgot-password` — add more as sensitive endpoints
   are built.
 - `ArtisanProfile` has no `Location` column (blocks Nearby Search — see above).
@@ -346,7 +368,8 @@ components/pages).
 - **Real API modules** live in `src/api/*Api.ts` (template: `jobsApi.ts`). They keep the mock's
   function names and return types, map backend `*Result` shapes to the frontend types, and use
   `unwrap()` / `rethrowApiError()` from `src/api/unwrap.ts` so pages get plain data or an
-  `ApiError` carrying the backend's message. `services/mockJobs.ts` is now unused.
+  `ApiError` carrying the backend's message. When a feature is swapped to its real API,
+  delete its mock service (done for jobs and bids).
 - Stale duplicate to delete: `src/lib/apiClient.ts` (unused; the real client is
   `src/api/client.ts`).
 - **Auth session lives in plain module state** (`authSession.ts`), not React state, so the

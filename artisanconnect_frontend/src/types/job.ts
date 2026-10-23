@@ -57,5 +57,8 @@ export interface JobResult {
   longitude: number;
   address: string | null;
   assignedArtisanId: string | null;
+  assignedArtisanName: string | null;
+  /** Live bids (excludes withdrawn). */
+  bidCount: number;
   createdAtUtc: string;
 }

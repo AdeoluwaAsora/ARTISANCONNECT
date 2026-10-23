@@ -6,13 +6,11 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/store/AuthContext";
 import { Card, Badge, Button } from "@/components/ui";
 import { jobsApi } from "@/api/jobsApi";
-import { bidsApi } from "@/services/mockBids";
+import { bidsApi } from "@/api/bidsApi";
 import { BidCard } from "@/features/bids/components/BidCard";
 import { SubmitBidForm } from "@/features/bids/components/SubmitBidForm";
 import type { JobStatus } from "@/types/job";
 import styles from "./JobDetailsPage.module.css";
-
-const MOCK_SELF_ARTISAN_ID = "artisan-1";
 
 const statusTone: Record<JobStatus, "neutral" | "info" | "success" | "warning" | "danger"> = {
   draft: "neutral",
@@ -31,6 +29,7 @@ export function JobDetailsPage() {
   const isArtisan = user?.role === "Artisan";
   const [actioningBidId, setActioningBidId] = useState<string | null>(null);
   const [isJobActionLoading, setIsJobActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { data: job, isLoading: jobLoading } = useQuery({
     queryKey: ["jobs", id],
@@ -45,53 +44,60 @@ export function JobDetailsPage() {
     enabled: Boolean(job),
   });
 
-  const myBid = bids?.find((b) => b.artisanId === MOCK_SELF_ARTISAN_ID);
+  // The API only returns an artisan's own bids, but match on id to be explicit.
+  const myBid = bids?.find((b) => b.artisanId === user?.userId && b.status !== "withdrawn");
 
-  const handleAccept = async (bidId: string) => {
+  const errorMessage = (err: unknown) =>
+    err instanceof Error ? err.message : "Something went wrong. Please try again.";
+
+  const runBidAction = async (bidId: string, action: (bidId: string) => Promise<unknown>) => {
     setActioningBidId(bidId);
+    setActionError(null);
     try {
-      await bidsApi.accept(bidId);
-      await queryClient.invalidateQueries({ queryKey: ["bids", "job", id] });
+      await action(bidId);
+      // Accepting changes the job (now Assigned) and the artisan's bid list too.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["bids"] }),
+        queryClient.invalidateQueries({ queryKey: ["jobs"] }),
+      ]);
+    } catch (err) {
+      setActionError(errorMessage(err));
     } finally {
       setActioningBidId(null);
     }
   };
 
-  const handleReject = async (bidId: string) => {
-    setActioningBidId(bidId);
-    try {
-      await bidsApi.reject(bidId);
-      await queryClient.invalidateQueries({ queryKey: ["bids", "job", id] });
-    } finally {
-      setActioningBidId(null);
-    }
-  };
+  const handleAccept = (bidId: string) => runBidAction(bidId, bidsApi.accept);
+  const handleReject = (bidId: string) => runBidAction(bidId, bidsApi.reject);
+  const handleWithdraw = (bidId: string) => runBidAction(bidId, bidsApi.withdraw);
 
-  const handleCancel = async () => {
+  const runJobAction = async (action: (jobId: string) => Promise<unknown>) => {
     setIsJobActionLoading(true);
+    setActionError(null);
     try {
-      await jobsApi.cancel(id);
-      await queryClient.invalidateQueries({ queryKey: ["jobs", id] });
+      await action(id);
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    } catch (err) {
+      setActionError(errorMessage(err));
     } finally {
       setIsJobActionLoading(false);
     }
   };
 
-  const handleComplete = async () => {
-    setIsJobActionLoading(true);
-    try {
-      await jobsApi.complete(id);
-      await queryClient.invalidateQueries({ queryKey: ["jobs", id] });
-    } finally {
-      setIsJobActionLoading(false);
-    }
-  };
+  const handleCancel = () => runJobAction(jobsApi.cancel);
+  const handleComplete = () => runJobAction(jobsApi.complete);
 
   if (jobLoading) return <p className="body-sm">Loading job…</p>;
   if (!job) return <p className="body-sm">Job not found.</p>;
 
   return (
     <div className={styles.page}>
+      {actionError && (
+        <p className={styles.actionError} role="alert">
+          {actionError}
+        </p>
+      )}
+
       <Card className={styles.header}>
         <div className={styles.headerTop}>
           <Badge tone={statusTone[job.status]}>{job.status.replace("_", " ")}</Badge>
@@ -179,13 +185,17 @@ export function JobDetailsPage() {
         <section className={styles.section}>
           <h3 className="heading-md">Your bid</h3>
           {myBid ? (
-            <BidCard bid={myBid} />
+            <BidCard
+              bid={myBid}
+              onWithdraw={handleWithdraw}
+              isActionLoading={actioningBidId === myBid.id}
+            />
           ) : (
             <SubmitBidForm
               jobId={job.id}
-              artisanId={MOCK_SELF_ARTISAN_ID}
               onSubmitted={() => {
-                queryClient.invalidateQueries({ queryKey: ["bids", "job", id] });
+                queryClient.invalidateQueries({ queryKey: ["bids"] });
+                queryClient.invalidateQueries({ queryKey: ["jobs"] });
                 navigate("/artisan/bids");
               }}
             />
