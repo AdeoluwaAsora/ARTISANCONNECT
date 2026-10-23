@@ -19,5 +19,23 @@ public class UpdateArtisanProfileCommandValidator : AbstractValidator<UpdateArti
             .GreaterThan(0)
             .When(x => x.HourlyRate.HasValue)
             .WithMessage("Hourly rate must be greater than zero.");
+
+        RuleFor(x => x)
+            .Must(x => x.Latitude.HasValue == x.Longitude.HasValue)
+            .WithName("Location")
+            .WithMessage("Send both latitude and longitude, or neither.");
+
+        RuleFor(x => x.Latitude!.Value)
+            .InclusiveBetween(-90, 90)
+            .When(x => x.Latitude.HasValue)
+            .WithName("Latitude");
+
+        RuleFor(x => x.Longitude!.Value)
+            .InclusiveBetween(-180, 180)
+            .When(x => x.Longitude.HasValue)
+            .WithName("Longitude");
+
+        RuleFor(x => x.City)
+            .MaximumLength(100);
     }
 }

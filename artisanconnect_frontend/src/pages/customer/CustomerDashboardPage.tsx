@@ -8,7 +8,9 @@ import { JobCard } from "@/components/common/JobCard";
 import { ArtisanCard } from "@/features/artisans/components/ArtisanCard";
 import { Button, Card } from "@/components/ui";
 import { jobsApi } from "@/api/jobsApi";
-import { artisansApi } from "@/services/mockArtisans";
+import { artisansApi } from "@/api/artisansApi";
+import { SearchOriginPicker } from "@/features/artisans/components/SearchOriginPicker";
+import { useSearchOrigin } from "@/features/artisans/useSearchOrigin";
 import styles from "./CustomerDashboardPage.module.css";
 
 export function CustomerDashboardPage() {
@@ -20,9 +22,11 @@ export function CustomerDashboardPage() {
     queryFn: () => jobsApi.getMyJobs(),
   });
 
+  const { origin } = useSearchOrigin();
   const { data: recommended, isLoading: artisansLoading } = useQuery({
-    queryKey: ["artisans", "recommended"],
-    queryFn: () => artisansApi.getNearby(),
+    queryKey: ["artisans", "nearby", origin, "recommended"],
+    queryFn: () => artisansApi.searchNearby(origin!),
+    enabled: origin !== null,
   });
 
   const activeJobs = jobs?.filter((j) => j.status === "assigned" || j.status === "in_progress") ?? [];
@@ -102,14 +106,18 @@ export function CustomerDashboardPage() {
             See more
           </Link>
         </div>
-        {artisansLoading ? (
+        {!origin ? (
+          <SearchOriginPicker />
+        ) : artisansLoading ? (
           <p className="body-sm">Finding artisans near you…</p>
-        ) : (
+        ) : recommended && recommended.length > 0 ? (
           <div className={styles.artisansGrid}>
-            {recommended?.slice(0, 4).map((artisan) => (
+            {recommended.slice(0, 4).map((artisan) => (
               <ArtisanCard key={artisan.id} artisan={artisan} compact />
             ))}
           </div>
+        ) : (
+          <p className="body-sm">No artisans near {origin.label} yet.</p>
         )}
       </section>
     </div>

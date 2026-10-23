@@ -32,5 +32,13 @@ public class ArtisanProfileConfiguration : IEntityTypeConfiguration<ArtisanProfi
 
         builder.Property(a => a.ProfilePictureUrl)
             .HasMaxLength(2048);
+
+        builder.Property(a => a.Location)
+            .HasColumnType("geography (Point, 4326)");
+
+        builder.HasIndex(a => a.Location).HasMethod("GIST");
+
+        builder.Property(a => a.City)
+            .HasMaxLength(100);
     }
 }

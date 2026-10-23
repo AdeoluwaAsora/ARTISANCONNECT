@@ -101,3 +101,12 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+.locationPrompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-left: 3px solid var(--color-warning);
+}

@@ -1,15 +1,13 @@
-import { useState } from "react";
 import type { FieldErrors, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { FiCheckCircle, FiCrosshair } from "react-icons/fi";
 import { Input, Select } from "@/components/forms";
 import { Button } from "@/components/ui";
 import type { PostJobFormValues } from "@/features/jobs/schemas";
-import { CITIES } from "@/features/jobs/cities";
+import { CITIES } from "@/lib/cities";
+import { useGeolocation } from "@/hooks/useGeolocation";
 import styles from "./steps.module.css";
 
 const cityOptions = CITIES.map((c) => ({ value: c.name, label: c.name }));
-
-type LocateState = "idle" | "locating" | "located" | "error";
 
 interface LocationStepProps {
   register: UseFormRegister<PostJobFormValues>;
@@ -19,35 +17,15 @@ interface LocationStepProps {
 }
 
 export function LocationStep({ register, errors, setValue, hasCoordinates }: LocationStepProps) {
-  const [locateState, setLocateState] = useState<LocateState>(hasCoordinates ? "located" : "idle");
-  const [locateError, setLocateError] = useState<string | null>(null);
+  const { state: locateState, error: locateError, locate } = useGeolocation(
+    hasCoordinates ? "located" : "idle",
+  );
 
-  const useCurrentLocation = () => {
-    if (!("geolocation" in navigator)) {
-      setLocateState("error");
-      setLocateError("Your browser can't share its location. We'll use the city centre instead.");
-      return;
-    }
-
-    setLocateState("locating");
-    setLocateError(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setValue("latitude", position.coords.latitude);
-        setValue("longitude", position.coords.longitude);
-        setLocateState("located");
-      },
-      (error) => {
-        setLocateState("error");
-        setLocateError(
-          error.code === error.PERMISSION_DENIED
-            ? "Location access was blocked. We'll use the city centre instead."
-            : "Couldn't get your location. We'll use the city centre instead.",
-        );
-      },
-      { enableHighAccuracy: true, timeout: 15000 },
-    );
-  };
+  const useCurrentLocation = () =>
+    locate(({ latitude, longitude }) => {
+      setValue("latitude", latitude);
+      setValue("longitude", longitude);
+    });
 
   return (
     <div className={styles.stepFields}>

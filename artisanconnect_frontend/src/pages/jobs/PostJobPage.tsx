@@ -18,7 +18,7 @@ import { LocationStep } from "@/features/jobs/components/steps/LocationStep";
 import { BudgetStep } from "@/features/jobs/components/steps/BudgetStep";
 import { PhotosStep } from "@/features/jobs/components/steps/PhotosStep";
 import { ReviewStep } from "@/features/jobs/components/steps/ReviewStep";
-import { findCity } from "@/features/jobs/cities";
+import { findCity } from "@/lib/cities";
 import styles from "./PostJobPage.module.css";
 
 export function PostJobPage() {

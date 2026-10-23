@@ -1,0 +1,31 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.current {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-ink);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.city {
+  flex: 1 1 200px;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-warning);
+  font-size: var(--fs-sm);
+}

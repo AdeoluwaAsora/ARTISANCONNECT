@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import { initialsOf } from "@/lib/initials";
 import { asUtc, rethrowApiError, unwrap } from "./unwrap";
 import type { ApiResponse, PaginatedList } from "@/types/api";
 import type { Bid, BidInput, BidResult, BidStatus } from "@/types/bid";
@@ -18,15 +19,6 @@ const STATUS_FROM_API: Record<BidResult["status"], BidStatus> = {
   Withdrawn: "withdrawn",
 };
 
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return parts.length === 0
-    ? "?"
-    : parts
-        .slice(0, 2)
-        .map((p) => p[0]!.toUpperCase())
-        .join("");
-}
 
 function toBid(result: BidResult): Bid {
   return {

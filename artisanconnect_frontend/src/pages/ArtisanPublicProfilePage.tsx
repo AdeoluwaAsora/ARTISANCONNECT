@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { FiCheckCircle, FiMessageCircle, FiMapPin } from "react-icons/fi";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Card, Badge, Button, PulseDot } from "@/components/ui";
-import { artisansApi } from "@/services/mockArtisans";
+import { artisansApi } from "@/api/artisansApi";
+import { useSearchOrigin } from "@/features/artisans/useSearchOrigin";
 import styles from "./ArtisanPublicProfilePage.module.css";
 
 export function ArtisanPublicProfilePage() {
   const { id = "" } = useParams();
+  const { origin } = useSearchOrigin();
   const { data: artisan, isLoading } = useQuery({
-    queryKey: ["artisans", id],
-    queryFn: () => artisansApi.getById(id),
+    queryKey: ["artisans", id, origin],
+    queryFn: () => artisansApi.getById(id, origin),
   });
 
   usePageTitle(artisan ? artisan.name : "Artisan profile");
@@ -37,17 +39,29 @@ export function ArtisanPublicProfilePage() {
             </div>
             <p className="body-base">{artisan.trade}</p>
             <p className="body-sm">
-              ★ {artisan.rating} ({artisan.reviewCount} reviews) · {artisan.jobsCompleted} jobs
-              completed · {artisan.yearsExperience} years experience
+              {[
+                artisan.rating !== null ? `★ ${artisan.rating} (${artisan.reviewCount ?? 0} reviews)` : null,
+                `${artisan.jobsCompleted} jobs completed`,
+                `${artisan.yearsExperience} years experience`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
-            <p className={styles.location}>
-              <FiMapPin size={13} aria-hidden="true" /> {artisan.distanceKm} km away
-            </p>
+            {(artisan.city || artisan.distanceKm !== null) && (
+              <p className={styles.location}>
+                <FiMapPin size={13} aria-hidden="true" />{" "}
+                {[artisan.city, artisan.distanceKm !== null ? `${artisan.distanceKm} km away` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
           </div>
         </div>
 
         <div className={styles.headerActions}>
-          <span className={`num ${styles.rate}`}>₦{artisan.hourlyRate.toLocaleString()}/hr</span>
+          <span className={`num ${styles.rate}`}>
+            {artisan.hourlyRate !== null ? `₦${artisan.hourlyRate.toLocaleString()}/hr` : "Rate on request"}
+          </span>
           <div className={styles.actionButtons}>
             <Button variant="outline" leftIcon={<FiMessageCircle />}>
               Message
@@ -61,7 +75,9 @@ export function ArtisanPublicProfilePage() {
 
       <Card>
         <h3 className="heading-sm">About</h3>
-        <p className={`body-base ${styles.bio}`}>{artisan.bio}</p>
+        <p className={`body-base ${styles.bio}`}>
+          {artisan.bio || `${artisan.name.split(" ")[0]} hasn't added a bio yet.`}
+        </p>
         <div className={styles.skills}>
           {artisan.skills.map((skill) => (
             <Badge key={skill} tone="neutral">
@@ -73,6 +89,7 @@ export function ArtisanPublicProfilePage() {
 
       <Card>
         <h3 className="heading-sm">Portfolio</h3>
+        {artisan.portfolio.length === 0 && <p className="body-sm">No portfolio photos yet.</p>}
         <div className={styles.portfolioGrid}>
           {artisan.portfolio.map((item) => (
             <div key={item.id} className={styles.portfolioTile}>
@@ -85,6 +102,7 @@ export function ArtisanPublicProfilePage() {
 
       <Card>
         <h3 className="heading-sm">Certificates</h3>
+        {artisan.certificates.length === 0 && <p className="body-sm">No certificates added yet.</p>}
         <div className={styles.certList}>
           {artisan.certificates.map((cert) => (
             <div key={cert.id} className={styles.certRow}>
@@ -106,6 +124,7 @@ export function ArtisanPublicProfilePage() {
 
       <Card>
         <h3 className="heading-sm">Reviews</h3>
+        {artisan.reviews.length === 0 && <p className="body-sm">No reviews yet.</p>}
         <div className={styles.reviewsList}>
           {artisan.reviews.map((review) => (
             <div key={review.id} className={styles.reviewRow}>

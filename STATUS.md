@@ -146,9 +146,11 @@ the pattern.
 `Job.Location` is a `NetTopologySuite.Geometries.Point`, mapped to a Postgres
 `geography (Point, 4326)` column with a GiST index. **Convention:
 `new Point(longitude, latitude)` — X is longitude, Y is latitude, easy to get backwards.**
-This is what will power Nearby Artisan Search (`ST_DWithin`/`ST_Distance`) — no such query
-exists yet. **`ArtisanProfile` has no `Location` column yet** — required before that search
-can actually work, since it's what gets queried against a job's location.
+`ArtisanProfile.Location` (nullable, same column type + GiST index) is the artisan's service
+location; Nearby Search filters with `IsWithinDistance` → `ST_DWithin` and orders by
+`Distance` → `ST_Distance` (both metres on geography). **Privacy rule: other users only ever
+get a distance, never an artisan's coordinates** (`ArtisanSummaryResult` has none; only the
+artisan's own `GET /users/me` includes them).
 
 ---
 
@@ -193,7 +195,14 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   creates `ArtisanProfile` in the same transaction), login, refresh-token (rotating, reuse
   detection), logout, forgot-password (generic response, no email enumeration, logs token to
   console — see Known Gaps), reset-password (single-use token, revokes all sessions)
-- **Profiles:** `GET/PUT /api/v1/users/me`, `PUT /api/v1/artisans/me/profile`
+- **Profiles:** `GET/PUT /api/v1/users/me`, `PUT /api/v1/artisans/me/profile` (now also takes
+  the service location: `latitude`/`longitude` — both or neither, neither clears it — and
+  `city`).
+- **Artisans (public, no sign-in):** `GET /api/v1/artisans/nearby?latitude&longitude` (required)
+  `&radiusKm` (default 50, max 200) `&trade&verifiedOnly&availableOnly`, nearest first;
+  `GET /api/v1/artisans/{userId}` (optional `latitude`/`longitude` for a distance). Both return
+  `ArtisanSummaryResult` with `JobsCompleted` counted from Completed jobs. Artisans without a
+  location, or whose account is inactive, are left out.
 - **Jobs:** create, get by id, get own (paginated), update (owner-only, Open-status-only),
   cancel (owner-only, Open-status-only), and `GET /api/v1/jobs/open` (Artisan-only, paginated,
   optional `?trade=` filter) for the artisan "Find Jobs" page. Budget is a range:
@@ -229,14 +238,23 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   radius, shadow (intentionally very subtle), motion
 - **Dashboard template** — role-aware `Sidebar` + `Topbar` shell (`DashboardLayout`)
 - **Customer & Artisan dashboards** — stat cards, recent activity, quick actions
-- **Find Nearby Artisans** — filters, list view, **custom stylized map view** (placeholder —
-  no Google Maps/Mapbox API key available yet; swap point commented in `ArtisansMapView.tsx`)
-- **Profiles** — Customer (saved artisans, job history, settings tabs), Artisan (portfolio,
-  certificates, reviews, settings tabs), public artisan profile page
+- **Find Nearby Artisans** — real search via `src/api/artisansApi.ts`: filters (trade,
+  distance, verified, online = `IsAvailable`), list view, **custom stylized map view**
+  (placeholder — no Google Maps/Mapbox key yet; swap point commented in `ArtisansMapView.tsx`;
+  pins are positioned without coordinates). "Searching near" comes from
+  `SearchOriginPicker` / `useSearchOrigin` (browser GPS or a city centre from `lib/cities.ts`),
+  remembered in localStorage and shared with the customer dashboard. Rating filter removed
+  until Reviews exist.
+- **Profiles** — Artisan Settings tab saves for real (`ArtisanSettingsForm`: trade, experience,
+  rate, bio, availability, service location with GPS or city). Artisan dashboard's Online switch
+  saves `IsAvailable` and prompts artisans with no location to set one. Portfolio,
+  certificates and reviews tabs show "coming soon" (need File uploads / Reviews). Public
+  artisan profile page is real. Customer "saved artisans" tab shows a "not available yet" note
+  (no backend for saved artisans).
 - **Jobs** — 5-step Post Job wizard, Job Details page, My Jobs / Find Jobs listings, all on
   the real backend via `src/api/jobsApi.ts`. The Location step has a "Use my current
   location" (browser GPS) button; if skipped, the job is placed at the centre of the chosen
-  city from `features/jobs/cities.ts`. Replace with real geocoding once a maps key exists.
+  city from `lib/cities.ts`. Replace with real geocoding once a maps key exists.
 - **Bidding** — submit/withdraw (artisan) and accept/reject (customer) on the Job Details
   page, plus My Bids and dashboard lists, all on the real backend via `src/api/bidsApi.ts`.
   Artisan rating and distance on bid cards are hidden until Reviews / Nearby Search exist.
@@ -257,7 +275,7 @@ now fully wired end to end.
 | Auth | real | real |
 | Jobs (create/get/list/open-list/cancel) | real (`api/jobsApi.ts`); job photos local-only; "Mark complete" not available until Contracts | real |
 | Bidding | real (`api/bidsApi.ts`); no edit-bid form yet | real |
-| Find Nearby Artisans | mock + stylized map | not started (PostGIS column exists on `Job`, not on `ArtisanProfile` yet) |
+| Find Nearby Artisans | real (`api/artisansApi.ts`) + stylized placeholder map | real (PostGIS `ST_DWithin`) |
 | Chat | mock (`mockChat.ts`, simulated real-time) | not started (SignalR wired up, no hub built; JWT-over-SignalR already configured) |
 | Notifications | static badge only, no real list | not started |
 | Reviews & Ratings | mock display only | not started |
@@ -267,7 +285,7 @@ now fully wired end to end.
 | Trust/anti-fraud | not started | not started |
 | File uploads | local preview only (`URL.createObjectURL`), nothing persisted | no storage abstraction built |
 
-**Recommended next step: Find Nearby Artisans** — next unchecked item below.
+**Recommended next step: Notifications** — next unchecked item below.
 
 ---
 
@@ -291,11 +309,10 @@ components/pages).
 - [x] **Fix artisan registration field name** (see above)
 - [x] **Wire frontend Jobs to real backend** (plus budget range, open-jobs endpoint, GPS/city location)
 - [x] **Bidding** — see "Bids" under What's DONE. Mock `mockBids.ts`/`mockJobs.ts` deleted.
-- [ ] **Find Nearby Artisans** — first real use of PostGIS. Add `Location` column to
-      `ArtisanProfile`, query via `ST_DWithin`. Filters: trade, rating (needs Reviews first),
-      distance, availability, verified-only. Frontend already built — swap `mockArtisans.ts`
-      and replace the placeholder map (`ArtisansMapView.tsx`) with real Google
-      Maps/Mapbox once an API key exists.
+- [x] **Find Nearby Artisans** — done (see What's DONE). Still to do later: a rating filter once
+      Reviews exist, and a real Google Maps/Mapbox map (`ArtisansMapView.tsx`) once there's an
+      API key. **Migration:** if `Infrastructure/Migrations/` has no migration adding
+      `ArtisanProfiles.Location`, generate one (`dotnet ef migrations add AddArtisanLocation …`).
 - [ ] **Notifications** — `Notification` entity, triggered by: new bid, bid accepted, job
       completed, artisan verified. No delivery mechanism (push/SMS) chosen yet.
 - [ ] **Chat / SignalR** — `Conversation` + `Message` entities, build `ChatHub`, map it in
@@ -328,7 +345,6 @@ components/pages).
   Payments).
 - No rate limiting tuned beyond `login`/`forgot-password` — add more as sensitive endpoints
   are built.
-- `ArtisanProfile` has no `Location` column (blocks Nearby Search — see above).
 - No separate `CustomerProfile` entity — saved addresses/saved artisans have nowhere to live
   server-side yet (frontend's "saved artisans" UI is currently local-state only).
 - Frontend auth session pragmatically stores the refresh token in `localStorage` on
