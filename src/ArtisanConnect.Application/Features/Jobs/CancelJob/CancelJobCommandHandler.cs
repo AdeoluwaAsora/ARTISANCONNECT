@@ -2,6 +2,7 @@ using ArtisanConnect.Application.Common.Exceptions;
 using ArtisanConnect.Application.Common.Interfaces;
 using ArtisanConnect.Application.Common.Models;
 using ArtisanConnect.Core.Enums;
+using ArtisanConnect.Application.Features.Notifications;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,6 +45,18 @@ public class CancelJobCommandHandler : IRequestHandler<CancelJobCommand, JobResu
         }
 
         job.Status = JobStatus.Cancelled;
+
+        // Close every pending bid on the job and tell those artisans, in the
+        // same save, so no bid is left "Pending" on a cancelled job.
+        var pendingBids = await _context.Bids
+            .Where(b => b.JobId == job.Id && b.Status == BidStatus.Pending)
+            .ToListAsync(cancellationToken);
+
+        foreach (var bid in pendingBids)
+        {
+            bid.Status = BidStatus.Rejected;
+            _context.Notifications.Add(NotificationFactory.JobCancelled(job, bid.ArtisanId));
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

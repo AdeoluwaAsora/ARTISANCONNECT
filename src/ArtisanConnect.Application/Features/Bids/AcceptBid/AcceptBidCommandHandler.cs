@@ -3,6 +3,7 @@ using ArtisanConnect.Application.Common.Interfaces;
 using ArtisanConnect.Application.Common.Models;
 using ArtisanConnect.Core.Entities;
 using ArtisanConnect.Core.Enums;
+using ArtisanConnect.Application.Features.Notifications;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -64,9 +65,12 @@ public class AcceptBidCommandHandler : IRequestHandler<AcceptBidCommand, BidResu
         job.Status = JobStatus.Assigned;
         job.AssignedArtisanId = bid.ArtisanId;
 
+        _context.Notifications.Add(NotificationFactory.BidAccepted(job, bid.ArtisanId));
+
         foreach (var other in otherPendingBids)
         {
             other.Status = BidStatus.Rejected;
+            _context.Notifications.Add(NotificationFactory.BidRejected(job, other.ArtisanId, anotherBidAccepted: true));
         }
 
         try
