@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { FiArrowLeft, FiMessageCircle } from "react-icons/fi";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { chatApi } from "@/services/mockChat";
+import { chatApi } from "@/api/chatApi";
 import { ConversationList } from "@/features/chat/components/ConversationList";
 import { ChatWindow } from "@/features/chat/components/ChatWindow";
 import styles from "./ChatPage.module.css";
@@ -11,19 +10,22 @@ import styles from "./ChatPage.module.css";
 export function ChatPage() {
   usePageTitle("Messages");
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeId, setActiveId] = useState<string | null>(searchParams.get("c"));
+  // The open conversation lives in the URL (?c=id), so "Message" buttons
+  // elsewhere can link straight to it.
+  const activeId = searchParams.get("c");
 
-  const { data: conversations, isLoading } = useQuery({
+  const {
+    data: conversations,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["chat", "conversations"],
     queryFn: () => chatApi.getConversations(),
   });
 
   const activeConversation = conversations?.find((c) => c.id === activeId) ?? null;
 
-  const selectConversation = (id: string) => {
-    setActiveId(id);
-    setSearchParams({ c: id });
-  };
+  const selectConversation = (id: string) => setSearchParams({ c: id });
 
   return (
     <div className={styles.page}>
@@ -32,6 +34,10 @@ export function ChatPage() {
       >
         {isLoading ? (
           <p className="body-sm">Loading conversations…</p>
+        ) : error ? (
+          <p className="body-sm" role="alert">
+            {error instanceof Error ? error.message : "Couldn't load your conversations."}
+          </p>
         ) : (
           <ConversationList
             conversations={conversations ?? []}
@@ -49,11 +55,11 @@ export function ChatPage() {
             <button
               type="button"
               className={styles.backButton}
-              onClick={() => setActiveId(null)}
+              onClick={() => setSearchParams({})}
             >
               <FiArrowLeft size={16} /> Back to conversations
             </button>
-            <ChatWindow conversation={activeConversation} />
+            <ChatWindow key={activeConversation.id} conversation={activeConversation} />
           </>
         ) : (
           <div className={styles.emptyState}>

@@ -24,7 +24,7 @@ it reflects real decisions already made, not just plans.**
 | Auth | JWT access tokens + rotating refresh tokens (custom, not ASP.NET Identity) |
 | Validation | FluentValidation (backend, via MediatR pipeline), Zod (frontend) |
 | Caching | Redis (StackExchange.Redis) — wired up, not yet used by any feature |
-| Real-time | SignalR — package/DI wired up on backend, no hubs built yet. Frontend chat UI is fully built against mock data with a clearly marked swap point. |
+| Real-time | SignalR — `ChatHub` at `/hubs/chat` (chat messages, receipts, typing, presence). JWT passed as `?access_token=` for `/hubs` paths. |
 | Docs | Swagger / OpenAPI (Development environment only) |
 | Containers | Docker Compose: `frontend` (nginx), `api`, `postgres` (postgis/postgis image), `redis` |
 | Logging | Serilog, console sink |
@@ -161,7 +161,8 @@ artisan's own `GET /users/me` includes them).
 
 ```
 artisanconnect_frontend/src/
-  api/              -> apiClient (Axios + interceptors), authApi
+  api/              -> client.ts (Axios + interceptors), unwrap.ts (ApiError helpers), and one
+                       *Api.ts per backend area: auth, jobs, bids, artisans, notifications, chat
   components/
     ui/             -> Button, Card, Badge, PulseDot, Tabs, Switch (+ index.ts barrel)
     forms/          -> Input, Textarea, PasswordInput, Select, Checkbox (+ index.ts barrel)
@@ -169,17 +170,21 @@ artisanconnect_frontend/src/
     common/         -> StatCard, JobCard
   features/
     auth/           -> Zod schemas, AuthLayout
-    artisans/       -> ArtisanCard, ArtisanFilters, ArtisansMapView
+    artisans/       -> ArtisanCard, ArtisanFilters, ArtisansMapView, SearchOriginPicker,
+                       ArtisanSettingsForm, useSearchOrigin
     jobs/           -> Zod schemas, StepIndicator, 5 wizard steps
     bids/           -> BidCard, SubmitBidForm
-    chat/           -> ConversationList, ChatWindow, MessageBubble, TypingIndicator
+    chat/           -> ConversationList, ChatWindow, MessageBubble, TypingIndicator,
+                       chatHub.ts (SignalR), useChatHubConnection, useStartChat
+    notifications/  -> NotificationBell
     landing/        -> all marketing page sections
   pages/            -> route-level pages, organized by customer/ artisan/ jobs/ chat/ auth/
-  services/         -> mock*.ts data services (jobs, bids, artisans, chat) + delay.ts
   store/            -> authSession.ts, AuthContext.tsx
   routes/           -> AppRoutes.tsx, ProtectedRoute.tsx
   layouts/          -> MainLayout (public site), DashboardLayout (authenticated app shell)
-  types/            -> auth.ts, api.ts, job.ts, bid.ts, artisan.ts, chat.ts
+  types/            -> auth.ts, api.ts, job.ts, bid.ts, artisan.ts, chat.ts, notification.ts
+  hooks/            -> usePageTitle, useGeolocation
+  lib/              -> cities, initials, timeAgo (small shared helpers)
   styles/           -> tokens.css (colors/type/spacing/radius/shadow/motion), global.css
 ```
 
@@ -237,7 +242,20 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   `GET /api/v1/notifications/unread-count`, `POST /api/v1/notifications/{id}/read`,
   `POST /api/v1/notifications/read-all`. Still to add as those flows appear: `JobCompleted`
   (Contracts) and `ArtisanVerified` (Admin), plus push/SMS/email delivery.
-  **Migration:** if `Infrastructure/Migrations/` has no `*_AddNotifications.cs`, generate it.
+- **Chat:** `Conversation` (one per customer–artisan pair, unique index; optional `JobId` tag;
+  denormalised `LastMessageAtUtc`/`LastMessagePreview`; per-participant
+  `CustomerLastReadAtUtc`/`ArtisanLastReadAtUtc`, which drive unread counts **and** read
+  receipts, so there's no per-message read row) and `ChatMessage` (Content ≤ 2000). **Who can
+  chat:** customers → any active artisan; artisans → only customers whose job they've bid on
+  (any bid status); enforced in `StartConversationCommandHandler`. Non-participants get 404.
+  REST (`/api/v1/conversations`): `POST` start/open `{participantId, jobId?}`, `GET` list,
+  `GET {id}/messages` (newest first), `POST {id}/messages`, `POST {id}/read`.
+  **SignalR** `ChatHub` at `/hubs/chat` (`API/Hubs/`) carries live events only — sending/reading
+  go through REST: server → client `ReceiveMessage`, `ConversationRead`, `UserTyping`,
+  `PresenceChanged`; client → server `Typing(conversationId, isTyping)`. Handlers push via
+  `IChatNotifier` (Application interface, implemented in API as `SignalRChatNotifier`) after
+  saving; online status via `IPresenceTracker` (in-memory singleton in Infrastructure — **move
+  to Redis before running more than one API instance**). Text only: images need File uploads.
 
 ### Frontend (built, wired to the real backend where endpoints exist)
 - **Landing page** — full marketing site: hero (custom radar illustration), 9 trade
@@ -272,10 +290,18 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   Editing a bid is API-only (`bidsApi.update`); there's no edit form yet.
 - **Notifications** — real bell in the `Topbar` (`features/notifications/NotificationBell`):
   unread badge polled every 30 s, dropdown of the 20 newest, click opens the job and marks it
-  read, "Mark all as read". A rising unread count also refreshes bid/job queries. Switch the
-  polling to a SignalR push once `ChatHub` exists.
-- **Chat** — conversation list, message bubbles (read receipts), typing indicator, image
-  attachments
+  read, "Mark all as read". A rising unread count also refreshes bid/job queries. Could move
+  from polling to a push over the chat hub (`IChatNotifier`-style) later.
+- **Chat** — real, via `src/api/chatApi.ts` (REST) + `features/chat/chatHub.ts` (one shared
+  SignalR connection, started/stopped by `useChatHubConnection` in `DashboardLayout`). Live
+  messages, read receipts, typing indicator, online dots. "Messages" sidebar link with unread
+  total. Chats open from "Message" buttons (`useStartChat`) on: artisan public profile
+  (customers), bid cards and the assigned-job page (customer), and the job page (artisan who
+  bid). Image attach button hidden until File uploads. The open conversation is the `?c=` URL
+  param.
+- Note: `/find-artisans` and `/artisans/:id` sit inside the signed-in `ProtectedRoute`, even
+  though their API endpoints are public. Move them out if visitors should search before signing
+  up.
 
 ---
 
@@ -288,10 +314,10 @@ now fully wired end to end.
 | Feature | Frontend | Backend |
 |---|---|---|
 | Auth | real | real |
-| Jobs (create/get/list/open-list/cancel) | real (`api/jobsApi.ts`); job photos local-only; "Mark complete" not available until Contracts | real |
+| Jobs (create/get/list/open-list/cancel) | real (`api/jobsApi.ts`); job photos local-only; "Mark as completed" button hidden until Contracts | real |
 | Bidding | real (`api/bidsApi.ts`); no edit-bid form yet | real |
 | Find Nearby Artisans | real (`api/artisansApi.ts`) + stylized placeholder map | real (PostGIS `ST_DWithin`) |
-| Chat | mock (`mockChat.ts`, simulated real-time) | not started (SignalR wired up, no hub built; JWT-over-SignalR already configured) |
+| Chat | real (`api/chatApi.ts` + `features/chat/chatHub.ts`); text only | real (REST + SignalR `ChatHub`) |
 | Notifications | real bell + dropdown (`api/notificationsApi.ts`), polled every 30 s | real (in-app only) |
 | Reviews & Ratings | mock display only | not started |
 | Contracts & Payments | not started | not started |
@@ -300,7 +326,7 @@ now fully wired end to end.
 | Trust/anti-fraud | not started | not started |
 | File uploads | local preview only (`URL.createObjectURL`), nothing persisted | no storage abstraction built |
 
-**Recommended next step: Chat / SignalR** — next unchecked item below.
+**Recommended next step: Contracts & Payments** — next unchecked item below. Needs a research pass on the Nomba payment API first.
 
 ---
 
@@ -329,10 +355,9 @@ components/pages).
       API key.
 - [x] **Notifications** — in-app, see What's DONE. Later: `JobCompleted`/`ArtisanVerified`
       triggers and a push/SMS/email channel (none chosen yet).
-- [ ] **Chat / SignalR** — `Conversation` + `Message` entities, build `ChatHub`, map it in
-      `Program.cs` (commented placeholder already there: `// app.MapHub<ChatHub>("/hubs/chat");`).
-      JWT-over-SignalR already configured — don't redo that part. Frontend UI fully built
-      with the swap point clearly marked in `src/services/mockChat.ts`.
+- [x] **Chat / SignalR** — see What's DONE. Later: image messages (needs File uploads), older
+      message paging in the UI, Redis-backed presence for multiple API instances.
+      **Migration:** generate `AddChat` if `Infrastructure/Migrations/` has none.
 - [ ] **Contracts & Payments** — `Contract`, `Payment` entities, escrow logic. Payment
       provider (Nomba, per original spec) not yet integrated — needs its own research pass.
 - [ ] **Reviews & Ratings** — `Review` entity tied to a completed Job. Updates
@@ -392,16 +417,10 @@ components/pages).
 ### Frontend
 - **CSS Modules only** — no Tailwind/Bootstrap/MUI. All colors/spacing/type pull from
   `tokens.css` variables, never hardcoded.
-- **Mock services pattern** (`src/services/mock*.ts`) simulate latency via a shared `delay()`
-  helper and match the function signatures a real API module would use, so swapping to real
-  endpoints is a contained change.
-- **Real API modules** live in `src/api/*Api.ts` (template: `jobsApi.ts`). They keep the mock's
-  function names and return types, map backend `*Result` shapes to the frontend types, and use
-  `unwrap()` / `rethrowApiError()` from `src/api/unwrap.ts` so pages get plain data or an
-  `ApiError` carrying the backend's message. When a feature is swapped to its real API,
-  delete its mock service (done for jobs and bids).
-- Stale duplicate to delete: `src/lib/apiClient.ts` (unused; the real client is
-  `src/api/client.ts`).
+- **API modules** live in `src/api/*Api.ts` (template: `jobsApi.ts`). They map backend
+  `*Result` shapes to the frontend types and use `unwrap()` / `rethrowApiError()` from
+  `src/api/unwrap.ts`, so pages get plain data or an `ApiError` carrying the backend's message.
+  All the old `src/services/mock*.ts` services have been replaced and deleted.
 - **Auth session lives in plain module state** (`authSession.ts`), not React state, so the
   Axios interceptor (`api/client.ts`) can reach it without a circular import;
   `AuthContext.tsx` wraps it for components via `useAuth()`.

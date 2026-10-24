@@ -1,3 +1,4 @@
+import { FiMessageCircle } from "react-icons/fi";
 import { Badge, Button } from "@/components/ui";
 import type { Bid, BidStatus } from "@/types/bid";
 import { bidStatusTone } from "@/features/bids/status";
@@ -16,10 +17,21 @@ export interface BidCardProps {
   onReject?: (bidId: string) => void;
   /** Shown to the artisan who owns a pending bid. */
   onWithdraw?: (bidId: string) => void;
+  /** Shown to the customer: opens a chat with this bid's artisan. */
+  onMessage?: (artisanId: string) => void;
+  isMessageLoading?: boolean;
   isActionLoading?: boolean;
 }
 
-export function BidCard({ bid, onAccept, onReject, onWithdraw, isActionLoading }: BidCardProps) {
+export function BidCard({
+  bid,
+  onAccept,
+  onReject,
+  onWithdraw,
+  onMessage,
+  isMessageLoading,
+  isActionLoading,
+}: BidCardProps) {
   const canAct = bid.status === "pending" && (onAccept || onReject);
   const canWithdraw = bid.status === "pending" && onWithdraw;
   const details = [
@@ -67,6 +79,19 @@ export function BidCard({ bid, onAccept, onReject, onWithdraw, isActionLoading }
             Accept
           </Button>
         </div>
+      )}
+
+      {onMessage && (
+        <Button
+          variant="ghost"
+          size="sm"
+          fullWidth
+          leftIcon={<FiMessageCircle />}
+          isLoading={isMessageLoading}
+          onClick={() => onMessage(bid.artisanId)}
+        >
+          Message {bid.artisanName.split(" ")[0]}
+        </Button>
       )}
 
       {canWithdraw && (

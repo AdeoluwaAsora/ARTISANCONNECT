@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiMapPin, FiClock, FiX, FiCheckCircle, FiMessageCircle } from "react-icons/fi";
+import { FiMapPin, FiClock, FiX, FiMessageCircle } from "react-icons/fi";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/store/AuthContext";
 import { Card, Badge, Button } from "@/components/ui";
@@ -9,6 +9,7 @@ import { jobsApi } from "@/api/jobsApi";
 import { bidsApi } from "@/api/bidsApi";
 import { BidCard } from "@/features/bids/components/BidCard";
 import { SubmitBidForm } from "@/features/bids/components/SubmitBidForm";
+import { useStartChat } from "@/features/chat/useStartChat";
 import type { JobStatus } from "@/types/job";
 import styles from "./JobDetailsPage.module.css";
 
@@ -30,6 +31,7 @@ export function JobDetailsPage() {
   const [actioningBidId, setActioningBidId] = useState<string | null>(null);
   const [isJobActionLoading, setIsJobActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const { startChat, startingWith, error: chatError } = useStartChat();
 
   const { data: job, isLoading: jobLoading } = useQuery({
     queryKey: ["jobs", id],
@@ -85,16 +87,16 @@ export function JobDetailsPage() {
   };
 
   const handleCancel = () => runJobAction(jobsApi.cancel);
-  const handleComplete = () => runJobAction(jobsApi.complete);
+  // "Mark as completed" returns with Contracts & Payments, which owns completion.
 
   if (jobLoading) return <p className="body-sm">Loading job…</p>;
   if (!job) return <p className="body-sm">Job not found.</p>;
 
   return (
     <div className={styles.page}>
-      {actionError && (
+      {(actionError || chatError) && (
         <p className={styles.actionError} role="alert">
-          {actionError}
+          {actionError ?? chatError}
         </p>
       )}
 
@@ -140,20 +142,29 @@ export function JobDetailsPage() {
                 Cancel job
               </Button>
             )}
-            {(job.status === "assigned" || job.status === "in_progress") && (
-              <>
-                <Button variant="outline" leftIcon={<FiMessageCircle />}>
-                  Message {job.assignedArtisanName}
-                </Button>
-                <Button
-                  leftIcon={<FiCheckCircle />}
-                  onClick={handleComplete}
-                  isLoading={isJobActionLoading}
-                >
-                  Mark as completed
-                </Button>
-              </>
+            {(job.status === "assigned" || job.status === "in_progress") && job.assignedArtisanId && (
+              <Button
+                variant="outline"
+                leftIcon={<FiMessageCircle />}
+                isLoading={startingWith === job.assignedArtisanId}
+                onClick={() => void startChat(job.assignedArtisanId!, job.id)}
+              >
+                Message {job.assignedArtisanName ?? "your artisan"}
+              </Button>
             )}
+          </div>
+        )}
+
+        {isArtisan && myBid && (
+          <div className={styles.actions}>
+            <Button
+              variant="outline"
+              leftIcon={<FiMessageCircle />}
+              isLoading={startingWith === job.customerId}
+              onClick={() => void startChat(job.customerId, job.id)}
+            >
+              Message customer
+            </Button>
           </div>
         )}
       </Card>
@@ -171,6 +182,8 @@ export function JobDetailsPage() {
                   bid={bid}
                   onAccept={handleAccept}
                   onReject={handleReject}
+                  onMessage={(artisanId) => void startChat(artisanId, job.id)}
+                  isMessageLoading={startingWith === bid.artisanId}
                   isActionLoading={actioningBidId === bid.id}
                 />
               ))}

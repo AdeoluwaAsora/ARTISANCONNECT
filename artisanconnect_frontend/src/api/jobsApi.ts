@@ -32,6 +32,7 @@ const URGENCY_NORMAL = 1;
 function toJob(result: JobResult): Job {
   return {
     id: result.jobId,
+    customerId: result.customerId,
     title: result.title,
     description: result.description,
     trade: tradeLabel(result.requiredTrade),

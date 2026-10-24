@@ -71,24 +71,6 @@
   background: var(--color-surface-raised);
 }
 
-.attachButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  background: transparent;
-  border-radius: 50%;
-  color: var(--color-slate);
-  flex-shrink: 0;
-}
-
-.attachButton:hover {
-  background: var(--color-surface);
-  color: var(--color-ink);
-}
-
 .textInput {
   flex: 1;
   height: 42px;
@@ -126,4 +108,21 @@
   .jobTag {
     display: inline-flex;
   }
+}
+
+.jobTag:hover {
+  text-decoration: underline;
+}
+
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sendError {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: var(--fs-sm);
 }

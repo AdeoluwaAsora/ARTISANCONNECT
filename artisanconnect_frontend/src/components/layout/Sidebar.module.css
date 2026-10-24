@@ -130,3 +130,18 @@
 .logoutButton:hover {
   background: var(--color-danger-bg);
 }
+
+.navBadge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-500);
+  color: var(--color-surface-raised);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

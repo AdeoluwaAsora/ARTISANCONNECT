@@ -8,8 +8,11 @@ import {
   FiUser,
   FiLogOut,
   FiList,
+  FiMessageCircle,
 } from "react-icons/fi";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/store/AuthContext";
+import { chatApi } from "@/api/chatApi";
 import styles from "./Sidebar.module.css";
 
 const customerNav = [
@@ -17,6 +20,7 @@ const customerNav = [
   { label: "Find artisans", to: "/find-artisans", icon: FiSearch },
   { label: "My jobs", to: "/customer/jobs", icon: FiBriefcase },
   { label: "Post a job", to: "/jobs/post", icon: FiPlusCircle },
+  { label: "Messages", to: "/messages", icon: FiMessageCircle },
   { label: "Saved artisans", to: "/customer/profile?tab=saved", icon: FiHeart },
   { label: "Profile & settings", to: "/customer/profile", icon: FiUser },
 ];
@@ -25,12 +29,21 @@ const artisanNav = [
   { label: "Dashboard", to: "/artisan/dashboard", icon: FiGrid },
   { label: "Find jobs", to: "/artisan/jobs", icon: FiList },
   { label: "My bids", to: "/artisan/bids", icon: FiBriefcase },
+  { label: "Messages", to: "/messages", icon: FiMessageCircle },
   { label: "Profile & settings", to: "/artisan/profile", icon: FiUser },
 ];
 
 export function Sidebar() {
   const { user, logout } = useAuth();
   const navItems = user?.role === "Artisan" ? artisanNav : customerNav;
+
+  // Same query as the Messages page, kept fresh by chat hub events.
+  const { data: conversations } = useQuery({
+    queryKey: ["chat", "conversations"],
+    queryFn: () => chatApi.getConversations(),
+    enabled: Boolean(user),
+  });
+  const unreadMessages = conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
 
   return (
     <aside className={styles.sidebar}>
@@ -52,6 +65,11 @@ export function Sidebar() {
           >
             <item.icon size={18} aria-hidden="true" />
             <span>{item.label}</span>
+            {item.to === "/messages" && unreadMessages > 0 && (
+              <span className={styles.navBadge} aria-label={`${unreadMessages} unread`}>
+                {unreadMessages > 99 ? "99+" : unreadMessages}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
