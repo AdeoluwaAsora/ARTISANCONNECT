@@ -83,6 +83,66 @@ namespace ArtisanConnect.Infrastructure.Migrations
                     b.ToTable("ArtisanProfiles", (string)null);
                 });
 
+            modelBuilder.Entity("ArtisanConnect.Core.Entities.Bid", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<Guid>("ArtisanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EtaMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<long>("RowVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArtisanId");
+
+                    b.HasIndex("JobId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Bids_JobId_Accepted")
+                        .HasFilter("\"Status\" = 'Accepted' AND NOT \"IsDeleted\"");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("JobId", "ArtisanId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Bids_JobId_ArtisanId_Active")
+                        .HasFilter("\"Status\" <> 'Withdrawn' AND NOT \"IsDeleted\"");
+
+                    b.ToTable("Bids", (string)null);
+                });
+
             modelBuilder.Entity("ArtisanConnect.Core.Entities.Job", b =>
                 {
                     b.Property<Guid>("Id")
@@ -149,6 +209,8 @@ namespace ArtisanConnect.Infrastructure.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignedArtisanId");
 
                     b.HasIndex("CustomerId");
 
@@ -313,13 +375,39 @@ namespace ArtisanConnect.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ArtisanConnect.Core.Entities.Bid", b =>
+                {
+                    b.HasOne("ArtisanConnect.Core.Entities.User", "Artisan")
+                        .WithMany()
+                        .HasForeignKey("ArtisanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtisanConnect.Core.Entities.Job", "Job")
+                        .WithMany("Bids")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Artisan");
+
+                    b.Navigation("Job");
+                });
+
             modelBuilder.Entity("ArtisanConnect.Core.Entities.Job", b =>
                 {
+                    b.HasOne("ArtisanConnect.Core.Entities.User", "AssignedArtisan")
+                        .WithMany()
+                        .HasForeignKey("AssignedArtisanId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ArtisanConnect.Core.Entities.User", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("AssignedArtisan");
 
                     b.Navigation("Customer");
                 });
@@ -344,6 +432,11 @@ namespace ArtisanConnect.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ArtisanConnect.Core.Entities.Job", b =>
+                {
+                    b.Navigation("Bids");
                 });
 
             modelBuilder.Entity("ArtisanConnect.Core.Entities.User", b =>
