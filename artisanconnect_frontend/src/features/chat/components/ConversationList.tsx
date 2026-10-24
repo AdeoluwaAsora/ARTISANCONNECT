@@ -43,7 +43,7 @@ export function ConversationList({ conversations, activeId, onSelect }: Conversa
               <span className={styles.time}>{timeAgo(conv.lastMessageAt)}</span>
             </div>
             {conv.jobTitle && <span className={styles.jobTag}>{conv.jobTitle}</span>}
-            <span className={styles.preview}>{conv.lastMessage}</span>
+            <span className={styles.preview}>{conv.lastMessage || "No messages yet"}</span>
           </div>
 
           {conv.unreadCount > 0 && (
@@ -53,7 +53,9 @@ export function ConversationList({ conversations, activeId, onSelect }: Conversa
       ))}
 
       {conversations.length === 0 && (
-        <p className={`body-sm ${styles.empty}`}>No conversations yet.</p>
+        <p className={`body-sm ${styles.empty}`}>
+          No conversations yet. Start one from an artisan's profile, a bid, or a job page.
+        </p>
       )}
     </div>
   );

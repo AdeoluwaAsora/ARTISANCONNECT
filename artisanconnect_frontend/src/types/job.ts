@@ -13,6 +13,8 @@ export interface JobPhoto {
 
 export interface Job {
   id: string;
+  /** The customer who posted it (for starting a chat). */
+  customerId: string;
   title: string;
   description: string;
   trade: string;

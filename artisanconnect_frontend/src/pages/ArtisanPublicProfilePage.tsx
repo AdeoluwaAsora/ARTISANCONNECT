@@ -5,11 +5,16 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { Card, Badge, Button, PulseDot } from "@/components/ui";
 import { artisansApi } from "@/api/artisansApi";
 import { useSearchOrigin } from "@/features/artisans/useSearchOrigin";
+import { useStartChat } from "@/features/chat/useStartChat";
+import { useAuth } from "@/store/AuthContext";
 import styles from "./ArtisanPublicProfilePage.module.css";
 
 export function ArtisanPublicProfilePage() {
   const { id = "" } = useParams();
   const { origin } = useSearchOrigin();
+  const { user } = useAuth();
+  const isCustomer = user?.role === "Customer";
+  const { startChat, startingWith, error: chatError } = useStartChat();
   const { data: artisan, isLoading } = useQuery({
     queryKey: ["artisans", id, origin],
     queryFn: () => artisansApi.getById(id, origin),
@@ -63,15 +68,30 @@ export function ArtisanPublicProfilePage() {
             {artisan.hourlyRate !== null ? `₦${artisan.hourlyRate.toLocaleString()}/hr` : "Rate on request"}
           </span>
           <div className={styles.actionButtons}>
-            <Button variant="outline" leftIcon={<FiMessageCircle />}>
-              Message
-            </Button>
-            <Link to="/jobs/post">
-              <Button>Request a quote</Button>
-            </Link>
+            {isCustomer && (
+              <>
+                <Button
+                  variant="outline"
+                  leftIcon={<FiMessageCircle />}
+                  isLoading={startingWith === artisan.id}
+                  onClick={() => void startChat(artisan.id)}
+                >
+                  Message
+                </Button>
+                <Link to="/jobs/post">
+                  <Button>Request a quote</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </Card>
+
+      {chatError && (
+        <p className="body-sm" role="alert">
+          {chatError}
+        </p>
+      )}
 
       <Card>
         <h3 className="heading-sm">About</h3>

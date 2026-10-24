@@ -12,5 +12,7 @@ public interface IApplicationDbContext
     DbSet<ArtisanProfile> ArtisanProfiles { get; }
     DbSet<Bid> Bids { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<Conversation> Conversations { get; }
+    DbSet<ChatMessage> ChatMessages { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

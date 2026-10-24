@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using ArtisanConnect.Infrastructure.Email;
+using ArtisanConnect.Infrastructure.Realtime;
 
 namespace ArtisanConnect.Infrastructure;
 
@@ -77,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IJwtSettingsAccessor, JwtSettingsAccessor>();
         services.AddScoped<IEmailSender, LoggingEmailSender>();
+        services.AddSingleton<IPresenceTracker, InMemoryPresenceTracker>();
     }
 
     private static void AddJwtAuthentication(IServiceCollection services, IConfiguration configuration)

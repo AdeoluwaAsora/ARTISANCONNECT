@@ -1,12 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiSend, FiImage, FiCheckCircle } from "react-icons/fi";
+import { FiSend, FiBriefcase } from "react-icons/fi";
 import { PulseDot } from "@/components/ui";
-import { chatApi, chatEvents, CURRENT_USER_ID } from "@/services/mockChat";
+import { chatApi } from "@/api/chatApi";
+import { useAuth } from "@/store/AuthContext";
 import type { ChatConversation, ChatMessage } from "@/types/chat";
+import { chatHub } from "../chatHub";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import styles from "./ChatWindow.module.css";
+
+const MAX_LENGTH = 2000;
+/** Stop showing "typing…" if we stop hearing from the other side. */
+const TYPING_TIMEOUT_MS = 5000;
+/** Tell the other side we stopped typing after this much quiet. */
+const TYPING_IDLE_MS = 3000;
 
 export interface ChatWindowProps {
   conversation: ChatConversation;
@@ -14,59 +23,131 @@ export interface ChatWindowProps {
 
 export function ChatWindow({ conversation }: ChatWindowProps) {
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const myId = user?.userId ?? "";
 
-  const { data: initialMessages } = useQuery({
+  const [draft, setDraft] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const typingSentRef = useRef(false);
+  const typingIdleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const otherTypingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const { data: loadedMessages, isLoading, error: loadError } = useQuery({
     queryKey: ["chat", "messages", conversation.id],
     queryFn: () => chatApi.getMessages(conversation.id),
   });
 
   useEffect(() => {
-    if (initialMessages) setLocalMessages(initialMessages);
-  }, [initialMessages]);
+    if (loadedMessages) setMessages(loadedMessages);
+  }, [loadedMessages]);
 
-  useEffect(() => {
-    chatApi.markAsRead(conversation.id).then(() => {
-      queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] });
-    });
+  // Add a message unless we already have it (the sender gets it twice: from
+  // the REST response and from the hub).
+  const addMessage = useCallback((message: ChatMessage) => {
+    setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+  }, []);
+
+  const markRead = useCallback(() => {
+    chatApi
+      .markAsRead(conversation.id)
+      .then(() => queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] }))
+      .catch(() => undefined);
   }, [conversation.id, queryClient]);
 
+  // Opening a conversation reads it.
   useEffect(() => {
-    const unsubscribeMessage = chatEvents.onMessage((message) => {
-      if (message.conversationId === conversation.id) {
-        setLocalMessages((prev) => [...prev, message]);
-      }
-    });
-    const unsubscribeTyping = chatEvents.onTyping(({ conversationId, isTyping: typing }) => {
-      if (conversationId === conversation.id) setIsTyping(typing);
-    });
-    return () => {
-      unsubscribeMessage();
-      unsubscribeTyping();
-    };
+    markRead();
+  }, [markRead]);
+
+  // Live events for this conversation.
+  useEffect(() => {
+    const unsubscribers = [
+      chatHub.onMessage((message) => {
+        if (message.conversationId !== conversation.id) return;
+        addMessage(message);
+        if (message.senderId !== myId) {
+          setIsOtherTyping(false);
+          if (document.visibilityState === "visible") markRead();
+        }
+      }),
+      chatHub.onConversationRead((conversationId, readAt) => {
+        if (conversationId !== conversation.id) return;
+        const readTime = new Date(readAt).getTime();
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.senderId === myId && !m.readAt && new Date(m.sentAt).getTime() <= readTime
+              ? { ...m, readAt }
+              : m,
+          ),
+        );
+      }),
+      chatHub.onTyping((conversationId, typing) => {
+        if (conversationId !== conversation.id) return;
+        setIsOtherTyping(typing);
+        clearTimeout(otherTypingTimer.current);
+        if (typing) otherTypingTimer.current = setTimeout(() => setIsOtherTyping(false), TYPING_TIMEOUT_MS);
+      }),
+    ];
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [conversation.id, myId, addMessage, markRead]);
+
+  const stopTyping = useCallback(() => {
+    clearTimeout(typingIdleTimer.current);
+    if (typingSentRef.current) {
+      typingSentRef.current = false;
+      chatHub.sendTyping(conversation.id, false);
+    }
   }, [conversation.id]);
+
+  // Leaving the conversation (or switching to another) ends "typing".
+  useEffect(() => {
+    return () => {
+      stopTyping();
+      clearTimeout(otherTypingTimer.current);
+      setIsOtherTyping(false);
+    };
+  }, [stopTyping]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [localMessages, isTyping]);
+  }, [messages, isOtherTyping]);
 
-  const handleSend = async (imageUrl?: string) => {
-    const content = draft.trim();
-    if (!content && !imageUrl) return;
-    setDraft("");
-    const message = await chatApi.sendMessage(conversation.id, content, imageUrl);
-    setLocalMessages((prev) => [...prev, message]);
-    queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] });
+  const handleDraftChange = (value: string) => {
+    setDraft(value);
+    if (!value.trim()) {
+      stopTyping();
+      return;
+    }
+    if (!typingSentRef.current) {
+      typingSentRef.current = true;
+      chatHub.sendTyping(conversation.id, true);
+    }
+    clearTimeout(typingIdleTimer.current);
+    typingIdleTimer.current = setTimeout(stopTyping, TYPING_IDLE_MS);
   };
 
-  const handleImagePick = (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    handleSend(URL.createObjectURL(file));
+  const handleSend = async () => {
+    const content = draft.trim();
+    if (!content || isSending) return;
+
+    setIsSending(true);
+    setSendError(null);
+    stopTyping();
+    setDraft("");
+    try {
+      const message = await chatApi.sendMessage(conversation.id, content);
+      addMessage(message);
+      queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] });
+    } catch (err) {
+      setDraft(content);
+      setSendError(err instanceof Error ? err.message : "Couldn't send your message. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -83,55 +164,60 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
             <span className="body-sm">Offline</span>
           )}
         </div>
-        {conversation.jobTitle && (
-          <span className={styles.jobTag}>
-            <FiCheckCircle size={12} aria-hidden="true" />
+        {conversation.jobTitle && conversation.jobId && (
+          <Link to={`/jobs/${conversation.jobId}`} className={styles.jobTag}>
+            <FiBriefcase size={12} aria-hidden="true" />
             {conversation.jobTitle}
-          </span>
+          </Link>
         )}
       </div>
 
       <div className={styles.messages} ref={scrollRef}>
-        {localMessages.map((message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            isOwn={message.senderId === CURRENT_USER_ID}
-          />
+        {isLoading && <p className="body-sm">Loading messages…</p>}
+        {loadError && (
+          <p className="body-sm" role="alert">
+            {loadError instanceof Error ? loadError.message : "Couldn't load messages."}
+          </p>
+        )}
+        {!isLoading && !loadError && messages.length === 0 && (
+          <p className="body-sm">No messages yet. Say hello to {conversation.participantName.split(" ")[0]}.</p>
+        )}
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} isOwn={message.senderId === myId} />
         ))}
-        {isTyping && <TypingIndicator name={conversation.participantName} />}
+        {isOtherTyping && <TypingIndicator name={conversation.participantName} />}
       </div>
 
+      {sendError && (
+        <p className={styles.sendError} role="alert">
+          {sendError}
+        </p>
+      )}
+
+      {/* Image attachments return once File uploads exist; until then a picked
+          image would only ever be visible on the sender's screen. */}
       <form
         className={styles.inputRow}
         onSubmit={(e) => {
           e.preventDefault();
-          handleSend();
+          void handleSend();
         }}
       >
-        <button
-          type="button"
-          className={styles.attachButton}
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="Attach image"
-        >
-          <FiImage size={20} />
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="visually-hidden"
-          onChange={(e) => handleImagePick(e.target.files)}
-        />
         <input
           type="text"
           className={styles.textInput}
           placeholder="Type a message…"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          maxLength={MAX_LENGTH}
+          onChange={(e) => handleDraftChange(e.target.value)}
+          aria-label={`Message ${conversation.participantName}`}
         />
-        <button type="submit" className={styles.sendButton} aria-label="Send message">
+        <button
+          type="submit"
+          className={styles.sendButton}
+          aria-label="Send message"
+          disabled={isSending || !draft.trim()}
+        >
           <FiSend size={18} />
         </button>
       </form>

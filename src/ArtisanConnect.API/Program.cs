@@ -1,6 +1,8 @@
 using ArtisanConnect.API.Extensions;
+using ArtisanConnect.API.Hubs;
 using ArtisanConnect.API.Middleware;
 using ArtisanConnect.Application;
+using ArtisanConnect.Application.Common.Interfaces;
 using ArtisanConnect.Infrastructure;
 using AspNetCoreRateLimit;
 using Serilog;
@@ -36,6 +38,8 @@ try
     builder.Services.AddSwaggerDocumentation();
     builder.Services.AddCorsPolicy(builder.Configuration);
     builder.Services.AddSignalR();
+    // The hub lives here in API, so its Application-facing notifier does too.
+    builder.Services.AddScoped<IChatNotifier, SignalRChatNotifier>();
     // NOTE: authorization services + role policies (RequireCustomerRole,
     // RequireArtisanRole, RequireAdminRole) are already registered inside
     // AddInfrastructure() via AddAuthorizationBuilder() - calling
@@ -92,10 +96,9 @@ try
     app.MapControllers();
     app.MapHealthChecks("/health");
 
-    // Hub endpoints get added here feature-by-feature, e.g.:
-    // app.MapHub<ChatHub>("/hubs/chat");
-    // Left as a comment (not a TODO on functionality we're shipping now) -
-    // the Chat module itself is a later step in the roadmap.
+    // Real-time hubs. JWTs reach them as ?access_token=... (see Infrastructure's
+    // JwtBearer OnMessageReceived), and nginx proxies /hubs/ with WebSocket upgrade.
+    app.MapHub<ChatHub>("/hubs/chat");
 
     app.Run();
 }
