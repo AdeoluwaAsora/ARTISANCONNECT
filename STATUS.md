@@ -102,7 +102,10 @@ Commands/Queries — they contain no business logic.
    - `Application/Common/Interfaces/IApplicationDbContext.cs` (the interface)
    - `Infrastructure/Persistence/ApplicationDbContext.cs` (the implementation, as
      `public DbSet<T> Name => Set<T>();`)
-4. Generate + apply a migration (see "How to run" above)
+4. Generate + apply a migration (see "How to run" above), then commit **all three** changed
+   files together: `<timestamp>_<Name>.cs`, its `.Designer.cs`, and the updated
+   `ApplicationDbContextModelSnapshot.cs`. Leaving the snapshot out makes EF think the change
+   never happened, and the next migration tries to apply it again (this happened with AddBids).
 
 ### Standard response envelope (both sides agree on this shape)
 
@@ -224,9 +227,17 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   - `POST /api/v1/bids/{id}/reject` (owning Customer).
   Two filtered unique indexes back the rules in the database: one active bid per
   artisan/job, and one Accepted bid per job (a racing second accept gets a 409).
-  **Migration:** if `Infrastructure/Migrations/` has no `*_AddBids.cs` yet, generate it with
-  `dotnet ef migrations add AddBids …` (see "How to run") — it was written where NuGet was
-  unreachable, so EF couldn't generate it there.
+  Cancelling a job rejects its pending bids.
+- **Notifications (in-app only):** `Notification` entity (UserId, Type, Title, Message,
+  optional JobId, IsRead/ReadAtUtc). Created in the **same `SaveChangesAsync`** as the change
+  they describe, via `Features/Notifications/NotificationFactory.cs` (all wording lives
+  there). Triggers: `NewBid` → customer; `BidAccepted` → artisan; `BidRejected` → artisan
+  (declined, or another bid accepted); `JobCancelled` → artisans with pending bids. Endpoints
+  (any signed-in user, own notifications only): `GET /api/v1/notifications?unreadOnly`,
+  `GET /api/v1/notifications/unread-count`, `POST /api/v1/notifications/{id}/read`,
+  `POST /api/v1/notifications/read-all`. Still to add as those flows appear: `JobCompleted`
+  (Contracts) and `ArtisanVerified` (Admin), plus push/SMS/email delivery.
+  **Migration:** if `Infrastructure/Migrations/` has no `*_AddNotifications.cs`, generate it.
 
 ### Frontend (built, wired to the real backend where endpoints exist)
 - **Landing page** — full marketing site: hero (custom radar illustration), 9 trade
@@ -259,6 +270,10 @@ barrel `index.ts` too** — forgetting this was a recurring source of build brea
   page, plus My Bids and dashboard lists, all on the real backend via `src/api/bidsApi.ts`.
   Artisan rating and distance on bid cards are hidden until Reviews / Nearby Search exist.
   Editing a bid is API-only (`bidsApi.update`); there's no edit form yet.
+- **Notifications** — real bell in the `Topbar` (`features/notifications/NotificationBell`):
+  unread badge polled every 30 s, dropdown of the 20 newest, click opens the job and marks it
+  read, "Mark all as read". A rising unread count also refreshes bid/job queries. Switch the
+  polling to a SignalR push once `ChatHub` exists.
 - **Chat** — conversation list, message bubbles (read receipts), typing indicator, image
   attachments
 
@@ -277,7 +292,7 @@ now fully wired end to end.
 | Bidding | real (`api/bidsApi.ts`); no edit-bid form yet | real |
 | Find Nearby Artisans | real (`api/artisansApi.ts`) + stylized placeholder map | real (PostGIS `ST_DWithin`) |
 | Chat | mock (`mockChat.ts`, simulated real-time) | not started (SignalR wired up, no hub built; JWT-over-SignalR already configured) |
-| Notifications | static badge only, no real list | not started |
+| Notifications | real bell + dropdown (`api/notificationsApi.ts`), polled every 30 s | real (in-app only) |
 | Reviews & Ratings | mock display only | not started |
 | Contracts & Payments | not started | not started |
 | Admin dashboard | not started | not started |
@@ -285,7 +300,7 @@ now fully wired end to end.
 | Trust/anti-fraud | not started | not started |
 | File uploads | local preview only (`URL.createObjectURL`), nothing persisted | no storage abstraction built |
 
-**Recommended next step: Notifications** — next unchecked item below.
+**Recommended next step: Chat / SignalR** — next unchecked item below.
 
 ---
 
@@ -311,10 +326,9 @@ components/pages).
 - [x] **Bidding** — see "Bids" under What's DONE. Mock `mockBids.ts`/`mockJobs.ts` deleted.
 - [x] **Find Nearby Artisans** — done (see What's DONE). Still to do later: a rating filter once
       Reviews exist, and a real Google Maps/Mapbox map (`ArtisansMapView.tsx`) once there's an
-      API key. **Migration:** if `Infrastructure/Migrations/` has no migration adding
-      `ArtisanProfiles.Location`, generate one (`dotnet ef migrations add AddArtisanLocation …`).
-- [ ] **Notifications** — `Notification` entity, triggered by: new bid, bid accepted, job
-      completed, artisan verified. No delivery mechanism (push/SMS) chosen yet.
+      API key.
+- [x] **Notifications** — in-app, see What's DONE. Later: `JobCompleted`/`ArtisanVerified`
+      triggers and a push/SMS/email channel (none chosen yet).
 - [ ] **Chat / SignalR** — `Conversation` + `Message` entities, build `ChatHub`, map it in
       `Program.cs` (commented placeholder already there: `// app.MapHub<ChatHub>("/hubs/chat");`).
       JWT-over-SignalR already configured — don't redo that part. Frontend UI fully built

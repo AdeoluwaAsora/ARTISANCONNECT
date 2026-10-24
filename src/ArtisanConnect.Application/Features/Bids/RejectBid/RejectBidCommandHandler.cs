@@ -3,6 +3,7 @@ using ArtisanConnect.Application.Common.Interfaces;
 using ArtisanConnect.Application.Common.Models;
 using ArtisanConnect.Core.Entities;
 using ArtisanConnect.Core.Enums;
+using ArtisanConnect.Application.Features.Notifications;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,6 +47,7 @@ public class RejectBidCommandHandler : IRequestHandler<RejectBidCommand, BidResu
         }
 
         bid.Status = BidStatus.Rejected;
+        _context.Notifications.Add(NotificationFactory.BidRejected(bid.Job!, bid.ArtisanId, anotherBidAccepted: false));
 
         await _context.SaveChangesAsync(cancellationToken);
 

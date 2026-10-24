@@ -21,6 +21,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Job> Jobs => Set<Job>();
     public DbSet<ArtisanProfile> ArtisanProfiles => Set<ArtisanProfile>();
     public DbSet<Bid> Bids => Set<Bid>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

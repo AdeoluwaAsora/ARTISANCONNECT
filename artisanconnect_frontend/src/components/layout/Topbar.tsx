@@ -1,5 +1,6 @@
-import { FiBell, FiMenu } from "react-icons/fi";
+import { FiMenu } from "react-icons/fi";
 import { PulseDot } from "@/components/ui";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import styles from "./Topbar.module.css";
 
 interface TopbarProps {
@@ -26,12 +27,7 @@ export function Topbar({ title, onMenuClick }: TopbarProps) {
           <PulseDot tone="accent" size="sm" />
           <span className="body-sm">Online</span>
         </div>
-        <button type="button" className={styles.iconButton} aria-label="Notifications">
-          <FiBell size={20} />
-          <span className={styles.badge} aria-hidden="true">
-            3
-          </span>
-        </button>
+        <NotificationBell />
       </div>
     </header>
   );

@@ -11,5 +11,6 @@ public interface IApplicationDbContext
     DbSet<Job> Jobs { get; }
     DbSet<ArtisanProfile> ArtisanProfiles { get; }
     DbSet<Bid> Bids { get; }
+    DbSet<Notification> Notifications { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

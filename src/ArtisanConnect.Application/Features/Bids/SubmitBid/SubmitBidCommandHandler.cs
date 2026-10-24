@@ -3,6 +3,7 @@ using ArtisanConnect.Application.Common.Interfaces;
 using ArtisanConnect.Application.Common.Models;
 using ArtisanConnect.Core.Entities;
 using ArtisanConnect.Core.Enums;
+using ArtisanConnect.Application.Features.Notifications;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -64,6 +65,12 @@ public class SubmitBidCommandHandler : IRequestHandler<SubmitBidCommand, BidResu
         };
 
         _context.Bids.Add(bid);
+
+        var artisanName = await _context.Users
+            .Where(u => u.Id == artisanId)
+            .Select(u => u.FirstName + " " + u.LastName)
+            .FirstAsync(cancellationToken);
+        _context.Notifications.Add(NotificationFactory.NewBid(job, artisanName, bid.Amount));
 
         try
         {
