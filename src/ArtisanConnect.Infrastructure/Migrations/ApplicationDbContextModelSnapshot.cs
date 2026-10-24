@@ -34,6 +34,10 @@ namespace ArtisanConnect.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -49,6 +53,9 @@ namespace ArtisanConnect.Infrastructure.Migrations
 
                     b.Property<bool>("IsVerified")
                         .HasColumnType("boolean");
+
+                    b.Property<Point>("Location")
+                        .HasColumnType("geography (Point, 4326)");
 
                     b.Property<string>("ProfilePictureUrl")
                         .HasMaxLength(2048)
@@ -74,6 +81,10 @@ namespace ArtisanConnect.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IsVerified");
+
+                    b.HasIndex("Location");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Location"), "GIST");
 
                     b.HasIndex("Trade");
 
